@@ -493,6 +493,20 @@ td.c-check { text-align: center; }
 .ia-link { color: var(--acc); font-size: 12px; text-decoration: none; width: fit-content; }
 .ia-link:hover { text-decoration: underline; }
 
+/* ===== consolidar géneros ===== */
+.link-mini { float: right; background: none; border: 0; color: var(--acc); cursor: pointer;
+    font-size: 11px; text-transform: none; letter-spacing: 0; padding: 0; font-weight: 600; }
+.link-mini:hover { text-decoration: underline; }
+.tabla-cons-cont { max-height: 52vh; overflow: auto; border: 1px solid var(--borde); border-radius: 8px; }
+.tabla-cons { width: 100%; border-collapse: collapse; font-size: 12.5px; }
+.tabla-cons td { padding: 5px 8px; border-bottom: 1px solid var(--borde); vertical-align: middle; }
+.tabla-cons tr:last-child td { border-bottom: 0; }
+.cons-num { color: var(--txt3); text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.cons-old { color: var(--txt2); }
+.cons-flecha { color: var(--txt3); text-align: center; }
+.cons-new { width: 100%; }
+.tabla-cons input[type=text] { padding: 3px 6px; font-size: 12.5px; }
+
 /* ===== menú contextual (clic derecho) ===== */
 .menu-ctx {
     position: fixed; z-index: 450; min-width: 236px;

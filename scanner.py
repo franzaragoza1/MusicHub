@@ -16,6 +16,7 @@ import mutagen
 from mutagen import MutagenError
 
 import database as db
+import generos as generos_mod
 
 # Extensiones soportadas.
 EXTENSIONES = {".mp3", ".flac", ".wav", ".aiff", ".aif", ".m4a", ".ogg"}
@@ -125,7 +126,7 @@ def leer_metadatos(ruta):
         datos["artista"] = _primer_valor(tags, ["artist", "albumartist", "ARTIST"])
         datos["titulo"] = _primer_valor(tags, ["title", "TITLE"])
         datos["album"] = _primer_valor(tags, ["album", "ALBUM"])
-        datos["genero"] = _primer_valor(tags, ["genre", "GENRE"])
+        datos["genero"] = generos_mod.normalizar(_primer_valor(tags, ["genre", "GENRE"]))
         if audio.info is not None:
             datos["duracion"] = getattr(audio.info, "length", None)
 
@@ -172,6 +173,8 @@ def _escanear_worker(carpeta):
 
         # Fecha de modificación conocida de cada canción ya guardada.
         mtimes_previos = db.mtimes_existentes()
+        # Grafía canónica de cada género ya presente (para no crear variantes).
+        canon = db.mapa_canonico()
 
         rutas = []
         nuevas = 0
@@ -197,6 +200,10 @@ def _escanear_worker(carpeta):
             else:
                 try:
                     datos = leer_metadatos(ruta)
+                    if datos.get("genero"):
+                        datos["genero"] = canon.get(
+                            generos_mod.clave(datos["genero"]), datos["genero"]
+                        )
                     db.upsert_track(datos)
                     rutas.append(datos["ruta"])
                     nuevas += 1

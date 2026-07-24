@@ -25,6 +25,7 @@ import tags
 import cover as cover_mod
 import exporters
 import ai
+import generos as generos_mod
 import actualizaciones
 from version import VERSION
 
@@ -191,9 +192,79 @@ def get_generos():
     return jsonify(db.generos_existentes())
 
 
+def _propuesta_consolidacion():
+    """
+    Propuesta automática (sin IA) para limpiar géneros: agrupa las variantes que
+    son "el mismo" género (ignora mayúsculas, acentos, separadores, fechas y
+    basura) y propone una grafía canónica. Devuelve {genero_actual: genero_nuevo}
+    solo para los que cambian ('' = borrar, p.ej. URLs).
+    """
+    grupos = {}
+    for d in db.generos_detalle():
+        grupos.setdefault(generos_mod.clave(d["genero"]), []).append((d["genero"], d["num"]))
+    mapping = {}
+    for k, miembros in grupos.items():
+        if not k:                                   # basura (URLs, números...)
+            for g, _n in miembros:
+                mapping[g] = ""
+            continue
+        miembros.sort(key=lambda x: -x[1])          # el de más canciones manda
+        canonico = generos_mod.normalizar(miembros[0][0])
+        for g, _n in miembros:
+            if g != canonico:
+                mapping[g] = canonico
+    return mapping
+
+
+@app.route("/api/generos/detalle")
+def get_generos_detalle():
+    """Géneros con recuento + propuesta automática de limpieza."""
+    return jsonify({
+        "generos": db.generos_detalle(),
+        "propuesta": _propuesta_consolidacion(),
+    })
+
+
+@app.route("/api/generos/consolidar", methods=["POST"])
+def consolidar_generos():
+    """
+    Aplica un mapa {genero_actual: genero_nuevo}: cambia el género en la base de
+    datos y lo escribe en los archivos. '' como destino borra el género.
+    """
+    mapping = (request.json or {}).get("mapping", {})
+    if not isinstance(mapping, dict) or not mapping:
+        return jsonify({"ok": False, "error": "No hay cambios que aplicar."}), 400
+
+    cambiadas = 0
+    fallos = 0
+    for antiguo, nuevo in mapping.items():
+        nuevo = generos_mod.normalizar(nuevo) if nuevo else ""
+        if nuevo == antiguo:
+            continue
+        afectadas = db.tracks_por_genero(antiguo)
+        db.renombrar_genero(antiguo, nuevo)
+        for tr in afectadas:
+            cambiadas += 1
+            try:
+                tags.escribir_genero(tr["ruta"], nuevo)
+                db.refrescar_mtime(tr["id"], tr["ruta"])
+            except Exception:
+                fallos += 1
+    aviso = f"No se pudo escribir en el archivo de {fallos} canción(es)." if fallos else None
+    return jsonify({"ok": True, "cambiadas": cambiadas, "aviso": aviso})
+
+
+def _canonizar_genero(genero):
+    """Normaliza el género y reutiliza la grafía ya existente si la hay."""
+    genero = generos_mod.normalizar(genero)
+    if genero:
+        genero = db.mapa_canonico().get(generos_mod.clave(genero), genero)
+    return genero
+
+
 @app.route("/api/track/<int:track_id>/genero", methods=["POST"])
 def set_genero(track_id):
-    genero = (request.json or {}).get("genero", "").strip()
+    genero = _canonizar_genero((request.json or {}).get("genero", ""))
     tr = db.get_track(track_id)
     if not tr:
         return jsonify({"ok": False, "error": "Canción no encontrada."}), 404
@@ -257,7 +328,7 @@ def set_genero_lote():
     """Asigna un género a varias canciones a la vez."""
     data = request.json or {}
     ids = data.get("ids", [])
-    genero = (data.get("genero") or "").strip()
+    genero = _canonizar_genero(data.get("genero") or "")
     fallos = []
     for tid in ids:
         tr = db.get_track(tid)
@@ -589,6 +660,18 @@ def ia_sugerir_genero():
     ids = (request.json or {}).get("ids", [])
     try:
         return jsonify({"ok": True, "propuestas": ai.sugerir_genero(ids)})
+    except Exception as e:
+        return jsonify({"ok": False, "error": str(e)}), 400
+
+
+@app.route("/api/ia/consolidar-generos", methods=["POST"])
+def ia_consolidar_generos():
+    g = _ia_guard()
+    if g:
+        return g
+    try:
+        lista = [d["genero"] for d in db.generos_detalle()]
+        return jsonify({"ok": True, "mapping": ai.consolidar_generos(lista)})
     except Exception as e:
         return jsonify({"ok": False, "error": str(e)}), 400
 

@@ -460,6 +460,41 @@ def recomendar(semilla_ids, limite=15):
     return _recomendar_local(semilla, candidatos, limite)
 
 
+def consolidar_generos(lista):
+    """
+    Dada la lista de géneros existentes, propone una grafía canónica para cada
+    uno, fusionando duplicados, idiomas y variantes. Devuelve {actual: canonico}
+    solo para los que cambian (canonico='' significa borrar, p.ej. una URL).
+    """
+    lista = [g for g in dict.fromkeys(lista) if g]   # únicos, en orden, sin vacíos
+    if not lista:
+        return {}
+    system = (
+        "Eres un experto catalogando música electrónica. Te doy una lista de "
+        "géneros tal cual están (con duplicados, idiomas distintos, separadores, "
+        "basura como URLs o fechas, y mayúsculas inconsistentes). Devuelve SOLO un "
+        "array JSON de objetos {\"actual\": \"...\", \"canonico\": \"...\"}, uno "
+        "por cada género que te paso. 'canonico' es el género limpio y unificado: "
+        "fusiona los que son el mismo (p. ej. 'Électronique' y 'Electronic' -> "
+        "'Electronic'; 'Indie Dance / Nu Disco' y 'Indie Dance,Nu Disco' -> 'Indie "
+        "Dance'). Usa nombres estándar de género en inglés. Si algo no es un género "
+        "(una URL, un número, una fecha), pon canonico vacío \"\". No inventes "
+        "géneros que no encajen."
+    )
+    user = "Géneros:\n" + "\n".join(f"- {g}" for g in lista)
+    datos = _pedir_json_lista(system, user, max_tokens=3000)
+    entrada = set(lista)
+    mapping = {}
+    for d in datos:
+        if not isinstance(d, dict):
+            continue
+        actual = (d.get("actual") or "").strip()
+        canonico = (d.get("canonico") or "").strip()
+        if actual in entrada and canonico != actual:
+            mapping[actual] = canonico
+    return mapping
+
+
 def _contexto_biblioteca(max_tracks=250):
     """Resumen compacto de la colección para dar contexto al chat."""
     tracks = db.listar_tracks()

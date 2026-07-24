@@ -1325,6 +1325,64 @@ window.addEventListener("drop", e => {
 });
 
 // =====================================================================
+//  CONSOLIDAR GÉNEROS (limpiar duplicados)
+// =====================================================================
+document.getElementById("btn-limpiar-generos").onclick = async () => {
+    let data;
+    try { data = await api("/api/generos/detalle"); }
+    catch (e) { toast(e.message); return; }
+    const detalle = new Map(data.generos.map(d => [d.genero, d.num]));
+    mostrarConsolidar(detalle, data.propuesta);
+};
+
+function mostrarConsolidar(detalle, propuesta) {
+    const entradas = Object.entries(propuesta)
+        .sort((a, b) => (detalle.get(b[0]) || 0) - (detalle.get(a[0]) || 0));
+    const filas = entradas.map(([antiguo, nuevo]) => `
+        <tr data-antiguo="${esc(antiguo)}">
+            <td><input type="checkbox" class="cons-chk" checked></td>
+            <td class="cons-num">${detalle.get(antiguo) || 0}</td>
+            <td class="cons-old">${esc(antiguo)}</td>
+            <td class="cons-flecha">→</td>
+            <td><input type="text" class="cons-new" value="${esc(nuevo)}" placeholder="(borrar)" list="lista-generos"></td>
+        </tr>`).join("");
+    const cuerpo = entradas.length
+        ? `<p class="ayuda">Revisa los cambios y desmarca los que no quieras. Un destino vacío borra ese género. Los cambios se escriben también en los archivos.</p>
+           <div class="tabla-cons-cont"><table class="tabla-cons"><tbody>${filas}</tbody></table></div>`
+        : `<p class="ayuda">No hay duplicados evidentes que consolidar. Si quieres afinar más (idiomas, subgéneros), prueba «Sugerir fusiones con IA».</p>`;
+    abrirModal("Consolidar géneros", cuerpo, `
+        <button id="btn-cons-ia" class="btn ia">Sugerir fusiones con IA</button>
+        <button id="btn-cons-aplicar" class="btn primario">Aplicar${entradas.length ? ` (${entradas.length})` : ""}</button>
+    `);
+    document.getElementById("btn-cons-aplicar").onclick = async (e) => {
+        const mapping = {};
+        document.querySelectorAll("#modal-cuerpo tr[data-antiguo]").forEach(tr => {
+            if (!tr.querySelector(".cons-chk").checked) return;
+            mapping[tr.dataset.antiguo] = tr.querySelector(".cons-new").value;
+        });
+        if (!Object.keys(mapping).length) { toast("No has marcado ningún cambio."); return; }
+        const rest = ocupar(e.target, "Aplicando…");
+        try {
+            const r = await post("/api/generos/consolidar", { mapping });
+            cerrarModal();
+            toast(`Listo: ${r.cambiadas} canciones actualizadas.${r.aviso ? " " + r.aviso : ""}`, 6000);
+            await recargarTrasProceso();
+        } catch (err) { toast(err.message); }
+        finally { rest(); }
+    };
+    document.getElementById("btn-cons-ia").onclick = async (e) => {
+        const rest = ocupar(e.target, "IA pensando…");
+        try {
+            const r = await post("/api/ia/consolidar-generos", {});
+            // La propuesta de la IA se combina con la automática (la IA manda).
+            mostrarConsolidar(detalle, { ...propuesta, ...r.mapping });
+            toast("Propuesta de la IA aplicada a la lista. Revísala y pulsa Aplicar.", 5000);
+        } catch (err) { toast(err.message); }
+        finally { rest(); }
+    };
+}
+
+// =====================================================================
 //  COMPROBADOR DE ACTUALIZACIONES
 // =====================================================================
 async function comprobarActualizacion() {

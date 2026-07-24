@@ -378,6 +378,54 @@ def generos_existentes():
         return [r["genero"] for r in rows]
 
 
+def generos_detalle():
+    """Géneros distintos con su recuento de canciones (para consolidar)."""
+    with _lock:
+        conn = get_conn()
+        rows = conn.execute(
+            "SELECT genero, COUNT(*) AS num FROM tracks "
+            "WHERE existe=1 AND genero IS NOT NULL AND genero <> '' "
+            "GROUP BY genero ORDER BY num DESC, genero COLLATE NOCASE"
+        ).fetchall()
+        return [{"genero": r["genero"], "num": r["num"]} for r in rows]
+
+
+def mapa_canonico():
+    """
+    {clave: grafía canónica} a partir de los géneros ya presentes. Al escanear,
+    se reutiliza la grafía existente para no crear variantes ('house' cuando ya
+    existe 'House', etc.). La grafía elegida es la del género con más canciones.
+    """
+    import generos as gmod
+    mapa, cuenta = {}, {}
+    for d in generos_detalle():
+        k = gmod.clave(d["genero"])
+        if not k:
+            continue
+        if k not in cuenta or d["num"] > cuenta[k]:
+            cuenta[k] = d["num"]
+            mapa[k] = gmod.normalizar(d["genero"])
+    return mapa
+
+
+def tracks_por_genero(genero):
+    """Devuelve [{id, ruta}] de las canciones existentes con ese género exacto."""
+    with _lock:
+        conn = get_conn()
+        rows = conn.execute(
+            "SELECT id, ruta FROM tracks WHERE existe=1 AND genero=?", (genero,)
+        ).fetchall()
+        return [dict(r) for r in rows]
+
+
+def renombrar_genero(antiguo, nuevo):
+    """Cambia el género de todas las canciones que tenían `antiguo` a `nuevo`."""
+    with _lock:
+        conn = get_conn()
+        conn.execute("UPDATE tracks SET genero=? WHERE genero=?", (nuevo or None, antiguo))
+        conn.commit()
+
+
 def tracks_sin_bpm():
     """
     IDs de canciones existentes sin BPM que aún no se han intentado calcular.
