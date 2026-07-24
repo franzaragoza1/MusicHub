@@ -887,10 +887,10 @@ document.getElementById("btn-ajustes").onclick = async () => {
             <input type="password" id="clave-${p.id}" placeholder="${p.configurada ? "Guardada — escribe para cambiarla" : esc(p.pista_clave)}">
             <input type="text" id="modelo-${p.id}" value="${esc(p.modelo)}" list="modelos-${p.id}" title="Modelo (por defecto ${esc(p.modelo_defecto)})">
             <datalist id="modelos-${p.id}">${(p.modelos_sugeridos || []).map(m => `<option value="${esc(m)}">`).join("")}</datalist>
-            <a href="#" class="ia-link" data-url="${esc(p.url_clave)}">Consigue tu clave gratis →</a>
+            ${p.configurada ? "" : `<a href="#" class="ia-link" data-url="${esc(p.url_clave)}">Consigue tu clave gratis →</a>`}
         </div>`;
     abrirModal("Ajustes de IA", `
-        <p class="ayuda">La IA es opcional. Solo se envía texto (artista, título, género…), <b>nunca tu música</b>. Por defecto usa <b>Groq</b>, que es gratis (crea tu clave gratuita en 30 s). OpenRouter es un extra para modelos de pago. Todo se guarda solo en tu ordenador.</p>
+        <p class="ayuda">La IA es opcional. Solo se envía texto (artista, título, género…), <b>nunca tu música</b>. Por defecto usa <b>Groq</b>, que es gratis. OpenRouter es un extra para modelos de pago (con tu propia clave). Todo se guarda solo en tu ordenador.</p>
         ${a.proveedores.map(bloque).join("")}
         <p id="ajustes-msg" class="msg"></p>
     `, `

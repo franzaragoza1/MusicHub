@@ -135,6 +135,8 @@ def _chat_raw(mensajes, max_tokens=1600, temperature=0.3):
         headers={
             "Authorization": f"Bearer {cfg['key']}",
             "Content-Type": "application/json",
+            # Sin User-Agent, Cloudflare (la puerta de Groq) bloquea con error 1010.
+            "User-Agent": "MusicHub/1.0",
             "HTTP-Referer": "http://127.0.0.1",
             "X-Title": "MusicHub",
         },
