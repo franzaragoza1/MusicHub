@@ -147,6 +147,13 @@ def _chat_raw(mensajes, max_tokens=1600, temperature=0.3):
             resp = json.load(r)
     except urllib.error.HTTPError as e:
         detalle = e.read().decode("utf-8", errors="ignore")[:300]
+        if e.code == 429:
+            m = re.search(r"try again in ([\d.]+)s", detalle)
+            espera = f" Prueba de nuevo en unos {round(float(m.group(1)))} segundos." if m else " Prueba de nuevo en un momento."
+            raise RuntimeError(
+                f"{nombre} está saturado ahora mismo (límite de uso gratuito por "
+                f"minuto).{espera}"
+            )
         raise RuntimeError(f"{nombre} devolvió error {e.code}: {detalle}")
     except Exception as e:
         raise RuntimeError(f"No se pudo conectar con {nombre}: {e}")
@@ -177,6 +184,12 @@ def _limpiar_respuesta(texto):
     return texto.strip()
 
 
+class _JsonInvalido(RuntimeError):
+    """La respuesta de la IA no se pudo interpretar como JSON (sí es reintentable,
+    a diferencia de un fallo de red/clave/límite de uso, que no lo es)."""
+    pass
+
+
 def _extraer_json(texto):
     """
     Extrae el primer objeto/array JSON del texto de la respuesta.
@@ -189,7 +202,7 @@ def _extraer_json(texto):
     candidatos = [i for i in (limpio.find("{"), limpio.find("[")) if i != -1]
     if not candidatos:
         muestra = (limpio or "(respuesta vacía)")[:200]
-        raise RuntimeError(
+        raise _JsonInvalido(
             f"La IA no devolvió ningún dato en formato JSON. Respondió: «{muestra}»"
         )
     inicio = min(candidatos)
@@ -219,7 +232,7 @@ def _extraer_json(texto):
                 fin = j
                 break
     if fin is None:
-        raise RuntimeError(
+        raise _JsonInvalido(
             "La IA devolvió un JSON incompleto (seguramente la respuesta se cortó "
             "por longitud). Prueba otra vez o reduce la selección."
         )
@@ -228,7 +241,7 @@ def _extraer_json(texto):
         return json.loads(fragmento)
     except json.JSONDecodeError as e:
         muestra = fragmento[:200]
-        raise RuntimeError(
+        raise _JsonInvalido(
             f"La IA devolvió un JSON con un error de formato ({e.msg}). "
             f"Prueba otra vez. Fragmento: «{muestra}»"
         )
@@ -252,17 +265,24 @@ def _asegurar_lista(datos):
 def _pedir_json_lista(system, user, max_tokens=1600):
     """
     Pide una respuesta JSON y devuelve siempre una lista de objetos. Si el
-    formato falla, reintenta UNA vez recordando al modelo que responda solo JSON.
+    JSON viene mal formado, reintenta UNA vez recordando al modelo que responda
+    solo JSON. Otros fallos (clave inválida, sin conexión, límite de uso) NO se
+    reintentan: reintentar un 429 solo malgasta más tokens del cupo por minuto.
     """
     try:
         return _asegurar_lista(_extraer_json(_chat(system, user, max_tokens=max_tokens)))
-    except RuntimeError:
+    except _JsonInvalido:
         system2 = (
             system
             + "\n\nIMPORTANTE: Responde EXCLUSIVAMENTE con el JSON pedido. "
             "Nada de texto antes o después, sin explicaciones y sin ```."
         )
         return _asegurar_lista(_extraer_json(_chat(system2, user, max_tokens=max_tokens)))
+
+
+def _en_lotes(lista, tam):
+    for i in range(0, len(lista), tam):
+        yield lista[i:i + tam]
 
 
 def _resumen_track(t):
@@ -293,15 +313,14 @@ def arreglar_nombres(ids):
     """
     Propone artista/título limpios para las canciones indicadas.
     Devuelve una lista de propuestas (el usuario decide si aplicarlas).
+
+    Se envía en tandas de 25: pedir demasiadas de golpe corta la respuesta de
+    la IA por el límite de tokens de salida y el JSON llega incompleto.
     """
     tracks = [db.get_track(i) for i in ids]
     tracks = [t for t in tracks if t]
     if not tracks:
         return []
-    lineas = [
-        f"{t['id']}: artista='{t.get('artista') or ''}' | titulo='{t.get('titulo') or ''}'"
-        for t in tracks
-    ]
     system = (
         "Eres un experto catalogando música electrónica. Te doy canciones con "
         "artista y título posiblemente mal escritos o con basura (por ejemplo "
@@ -311,57 +330,66 @@ def arreglar_nombres(ids):
         "versión corregida y limpia. Mantén el idioma original. Si algo ya está "
         "bien, repítelo igual. No inventes datos que no puedas deducir."
     )
-    user = "Canciones:\n" + "\n".join(lineas)
-    datos = _pedir_json_lista(system, user)
-    por_id = {t["id"]: t for t in tracks}
     propuestas = []
-    for d in datos:
-        if not isinstance(d, dict):
-            continue
-        tid = d.get("id")
-        if tid in por_id:
-            t = por_id[tid]
-            propuestas.append({
-                "id": tid,
-                "artista_actual": t.get("artista") or "",
-                "titulo_actual": t.get("titulo") or "",
-                "artista": (d.get("artista") or "").strip(),
-                "titulo": (d.get("titulo") or "").strip(),
-            })
+    for lote in _en_lotes(tracks, 25):
+        lineas = [
+            f"{t['id']}: artista='{t.get('artista') or ''}' | titulo='{t.get('titulo') or ''}'"
+            for t in lote
+        ]
+        user = "Canciones:\n" + "\n".join(lineas)
+        datos = _pedir_json_lista(system, user)
+        por_id = {t["id"]: t for t in lote}
+        for d in datos:
+            if not isinstance(d, dict):
+                continue
+            tid = d.get("id")
+            if tid in por_id:
+                t = por_id[tid]
+                propuestas.append({
+                    "id": tid,
+                    "artista_actual": t.get("artista") or "",
+                    "titulo_actual": t.get("titulo") or "",
+                    "artista": (d.get("artista") or "").strip(),
+                    "titulo": (d.get("titulo") or "").strip(),
+                })
     return propuestas
 
 
 def sugerir_genero(ids):
-    """Propone un género para cada canción, coherente con la colección."""
+    """
+    Propone un género para cada canción, coherente con la colección. Igual que
+    arreglar_nombres, en tandas de 25 para no cortar la respuesta.
+    """
     tracks = [db.get_track(i) for i in ids]
     tracks = [t for t in tracks if t]
     if not tracks:
         return []
     existentes = db.generos_existentes()
-    lineas = [f"{t['id']}: {_resumen_track(t)}" for t in tracks]
     system = (
         "Eres DJ y experto en subgéneros de música electrónica. Propón el "
         "género más adecuado para cada canción. Prioriza reutilizar los géneros "
         "que ya usa esta colección si encajan. Devuelve SOLO un array JSON de "
         "objetos {\"id\": <id>, \"genero\": \"...\"}."
     )
-    user = (
-        f"Géneros ya usados en la colección: {', '.join(existentes) or '(ninguno)'}\n\n"
-        "Canciones:\n" + "\n".join(lineas)
-    )
-    datos = _pedir_json_lista(system, user)
-    por_id = {t["id"]: t for t in tracks}
     propuestas = []
-    for d in datos:
-        if not isinstance(d, dict):
-            continue
-        tid = d.get("id")
-        if tid in por_id and d.get("genero"):
-            propuestas.append({
-                "id": tid,
-                "genero_actual": por_id[tid].get("genero") or "",
-                "genero": d["genero"].strip(),
-            })
+    for lote in _en_lotes(tracks, 25):
+        lineas = [f"{t['id']}: {_resumen_track(t)}" for t in lote]
+        user = (
+            f"Géneros ya usados en la colección: {', '.join(existentes) or '(ninguno)'}\n\n"
+            "Canciones:\n" + "\n".join(lineas)
+        )
+        datos = _pedir_json_lista(system, user)
+        por_id = {t["id"]: t for t in lote}
+        for d in datos:
+            if not isinstance(d, dict):
+                continue
+            tid = d.get("id")
+            if tid in por_id and d.get("genero"):
+                propuestas.append({
+                    "id": tid,
+                    "genero_actual": por_id[tid].get("genero") or "",
+                    "genero": d["genero"].strip(),
+                })
     return propuestas
 
 
@@ -513,8 +541,13 @@ def consolidar_generos(lista):
     return mapping
 
 
-def _contexto_biblioteca(max_tracks=250):
-    """Resumen compacto de la colección para dar contexto al chat."""
+def _contexto_biblioteca(max_tracks=60):
+    """
+    Resumen compacto de la colección para dar contexto al chat. Se manda
+    entero en CADA mensaje, así que hay que mantenerlo corto: Groq gratis
+    permite muy pocos tokens por minuto en el modelo grande (8000 TPM), y
+    un límite alto aquí se lo come casi entero de una sola vez.
+    """
     tracks = db.listar_tracks()
     if not tracks:
         return "La biblioteca está vacía (aún no se ha escaneado música)."
