@@ -1,0 +1,21 @@
+# Entorno virtual e intermedios de Python
+venv/
+__pycache__/
+*.pyc
+
+# Salidas de compilación (PyInstaller)
+build/
+dist/
+
+# Base de datos y datos locales del usuario (NO distribuir: contiene rutas y biblioteca)
+musichub.db
+musichub.db-shm
+musichub.db-wal
+exports/
+
+# Ajustes locales de Claude Code
+.claude/
+
+# Sistema
+.DS_Store
+Thumbs.db

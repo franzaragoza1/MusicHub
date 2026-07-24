@@ -1,0 +1,166 @@
+===========================================================
+  MusicHub - Organizador de tu musica para DJ
+===========================================================
+
+DONDE SE GUARDAN TUS DATOS (IMPORTANTE)
+---------------------------------------
+Todo lo que haces (biblioteca, generos corregidos, BPM,
+tonalidad, listas guardadas y ajustes) se guarda en una carpeta
+de datos del usuario, segun tu sistema:
+
+   Windows: C:\Users\<tu usuario>\AppData\Local\MusicHub\musichub.db
+   macOS:   ~/Library/Application Support/MusicHub/musichub.db
+   Linux:   ~/.local/share/MusicHub/musichub.db
+
+Esta carpeta esta SEPARADA del programa a proposito, para que
+nunca pierdas tus datos aunque muevas o actualices el programa.
+Se guarda todo solo; no tienes que hacer nada.
+
+Ademas, los generos, BPM, tonalidad y nombres corregidos tambien
+se escriben dentro de los propios archivos de musica, asi que esa
+informacion sobrevive aunque se borrara la base de datos.
+
+Copia de seguridad: si quieres, copia ese archivo musichub.db a
+otro sitio de vez en cuando y tendras un respaldo completo.
+
+
+QUE HACE
+--------
+- Revisa toda tu carpeta de musica y te muestra lo que tiene
+  cada cancion: artista, titulo, album, genero y BPM (velocidad).
+- Te deja corregir o anadir el genero. El cambio se guarda tanto
+  en el programa como dentro de la etiqueta del propio archivo
+  (asi Rekordbox y Traktor tambien veran el genero correcto).
+- Puede calcular el BPM de las canciones que no lo tengan.
+- Te deja crear listas filtrando por genero, rango de BPM,
+  artista o nombre, guardarlas, y exportarlas para Rekordbox y
+  para Traktor.
+
+Todo funciona SOLO en tu ordenador. No usa internet, ni cuentas,
+ni toca las carpetas internas de Rekordbox ni de Traktor.
+
+
+COMO ARRANCARLO
+---------------
+En WINDOWS:
+1. Haz doble clic en "MusicHub.bat".
+2. La PRIMERA vez tarda unos minutos (instala lo que necesita).
+   Las siguientes veces arranca en segundos.
+3. Se abre en SU PROPIA VENTANA, como un programa de escritorio
+   normal (sin pestanas ni barra de direcciones).
+4. Para cerrar el programa, cierra la ventana negra.
+
+En macOS (o Linux):
+1. Haz doble clic en "MusicHub.command".
+   - La primera vez, si el sistema no te deja abrirlo, haz clic
+     DERECHO sobre el archivo -> "Abrir" (y confirma). Esto solo
+     hace falta la primera vez.
+   - Si Finder dice que no tiene permisos, abre la app Terminal,
+     escribe  chmod +x   (con un espacio al final), arrastra el
+     archivo MusicHub.command a la ventana y pulsa Enter. Una vez.
+2. La primera vez instala lo necesario (tarda unos minutos).
+3. Se abre en su propia ventana.
+4. Para cerrar, cierra la ventana de Terminal que se abrio.
+
+La ventana propia funciona con "pywebview" (ventana nativa del
+sistema). Si por lo que sea no estuviera disponible, el programa
+abre automaticamente en tu navegador; todo sigue funcionando igual.
+
+
+PRIMEROS PASOS
+--------------
+1. Arriba, pulsa "Elegir carpeta..." y navega hasta la carpeta
+   donde tienes tu musica; haz clic en ella y acepta.
+   (Tambien puedes pegar la ruta a mano en el recuadro si prefieres.)
+2. Pulsa "Escanear". Veras aparecer todas tus canciones.
+   Los siguientes escaneos son casi instantaneos: solo lee los
+   archivos nuevos o que hayan cambiado, y respeta todo lo ya hecho
+   (generos, BPM, tonalidad, energia y tus correcciones a mano).
+3. Corrige generos:
+   - Haz clic sobre el genero de una cancion para editarlo.
+   - O marca varias con la casilla y usa "Aplicar genero".
+   - Los filtros "Sin genero" / "Sin BPM" ayudan a encontrar
+     lo que falta.
+4. Pulsa "Analizar (BPM + tonalidad)" si quieres que calcule la
+   velocidad (BPM), la tonalidad (formato Camelot, ej. 8A) y la
+   ENERGIA (intensidad, del 1 al 10) de las canciones que no la
+   tengan (tarda unos segundos por cancion). La energia se calcula
+   combinando sonoridad, densidad ritmica y brillo del sonido, y se
+   recalibra cada vez que analizas mas musica. Si un valor no te
+   convence, haz clic sobre el numero y corrigelo a mano: esa
+   correccion ya no se tocara al recalibrar.
+5. Puedes editar tambien el artista, el titulo y el album haciendo
+   clic sobre esas celdas (se guardan en la etiqueta del archivo).
+6. Filtra por rango de BPM con los recuadros "min/max" de arriba.
+
+
+AYUDA CON IA (OPCIONAL)
+-----------------------
+Pulsando el engranaje (arriba a la derecha) puedes poner una clave
+de OpenRouter (openrouter.ai) para activar funciones con inteligencia
+artificial. Es TOTALMENTE opcional: sin clave, el programa funciona
+igual, 100% sin internet. A la IA solo se le manda texto (artista,
+titulo, genero), NUNCA tu musica ni tus archivos.
+
+Con la IA activada puedes:
+- Arreglar nombres/metadatos mal escritos (seleccionas canciones ->
+  "Arreglar nombres" -> revisas y aplicas).
+- Sugerir genero para canciones sin genero.
+- Recomendar temas de TU coleccion que encajan con tu set (boton
+  "Recomendar" en el panel de preparacion).
+- Armar un set escribiendo una descripcion (ej. "techno hipnotico
+  130-134 para el cierre") en el recuadro del panel de preparacion.
+Siempre revisas y confirmas antes de que se aplique nada.
+
+
+CREAR Y EXPORTAR LISTAS
+-----------------------
+1. Ve a la pestana "Listas".
+2. Elige criterios: generos (chips), rango de BPM, artista, texto.
+   A la derecha veras en vivo las canciones que entran.
+   Puedes reordenarlas (flechas) o quitar alguna (X).
+3. Ponle un nombre y pulsa "Guardar lista".
+4. En "Listas guardadas", pulsa "Exportar". Se crean DOS archivos
+   en la carpeta "exports":
+      - un archivo .m3u8  -> para Rekordbox
+      - un archivo .nml   -> para Traktor
+
+COMO IMPORTAR EN REKORDBOX
+--------------------------
+En Rekordbox: menu Archivo -> Importar -> Lista de reproduccion,
+y elige el archivo .m3u8 de la carpeta "exports".
+
+COMO IMPORTAR EN TRAKTOR
+------------------------
+En Traktor: clic derecho sobre "Playlists" (panel izquierdo) ->
+"Import Playlist", y elige el archivo .nml de la carpeta "exports".
+
+
+ANADIR MUSICA ARRASTRANDO
+-------------------------
+Puedes arrastrar archivos (o carpetas enteras) de musica desde el
+Explorador de Windows y soltarlos sobre la ventana del programa.
+Se COPIARAN dentro de tu carpeta de musica y se anadiran solos a la
+biblioteca. (Un navegador no puede reproducir un archivo desde su
+sitio original por seguridad; por eso se importa una copia.)
+
+MENU DE CLIC DERECHO
+--------------------
+Haz clic derecho sobre cualquier cancion de la lista para: reproducir,
+anadir al set, pedir recomendaciones a partir de ella, ver todo de ese
+artista, editar el genero, abrir la ubicacion del archivo en el
+Explorador o copiar su ruta.
+
+
+NOTAS
+-----
+- El programa SOLO escribe el genero (y el BPM cuando lo calcula)
+  dentro de tus archivos. No toca nada mas.
+- No usa hot cues ni beat grid: se ignoran por completo.
+- Si una cancion esta en formato WAV puede que no tenga etiquetas;
+  puedes anadirle el genero igualmente desde el programa.
+- Reproduccion: Chrome y Edge reproducen casi todos los formatos,
+  incluidos los M4A/AAC comprados en iTunes (sin DRM). Algunos
+  navegadores como Firefox pueden no reproducir M4A o AIFF. Si una
+  cancion no suena, el programa te dira si es por el formato o porque
+  el archivo se movio de sitio (en ese caso, vuelve a Escanear).

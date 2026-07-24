@@ -1,0 +1,6 @@
+flask
+mutagen
+soundfile
+numpy
+librosa
+pywebview

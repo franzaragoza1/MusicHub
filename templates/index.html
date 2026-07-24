@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MusicHub — Organizador de música para DJ</title>
+    <link rel="stylesheet" href="{{ asset('estilo.css') }}">
+</head>
+<body>
+<div class="app">
+
+    <!-- ================= BARRA SUPERIOR ================= -->
+    <header class="topbar">
+        <div class="marca">🎧 <span>MusicHub</span></div>
+        <div class="buscador">
+            <span class="lupa">🔍</span>
+            <input type="text" id="buscar" placeholder="Buscar por artista, título o álbum…" spellcheck="false">
+        </div>
+        <div class="acciones">
+            <button id="btn-elegir-carpeta" class="btn">📁 Carpeta</button>
+            <button id="btn-escanear" class="btn primario">↻ Escanear</button>
+            <button id="btn-bpm" class="btn">⏱ Analizar (BPM + tonalidad)</button>
+            <button id="btn-chat" class="btn ia" title="Chat con la IA">💬 Chat</button>
+            <button id="btn-ajustes" class="btn" title="Ajustes de IA">⚙</button>
+        </div>
+    </header>
+
+    <!-- barra de progreso global -->
+    <div id="progreso" class="progreso oculto">
+        <div class="barra"><div class="relleno" id="progreso-relleno"></div></div>
+        <span id="progreso-texto"></span>
+    </div>
+
+    <!-- ================= CUERPO 3 COLUMNAS ================= -->
+    <div class="cuerpo">
+
+        <!-- ---- IZQUIERDA: fuentes ---- -->
+        <aside class="sidebar">
+            <div class="grupo">
+                <div class="grupo-tit">Biblioteca</div>
+                <ul id="fuentes-fijas" class="fuentes"></ul>
+            </div>
+            <div class="grupo" id="grupo-carpetas">
+                <div class="grupo-tit">Carpetas</div>
+                <ul id="fuentes-carpetas" class="fuentes"></ul>
+            </div>
+            <div class="grupo">
+                <div class="grupo-tit">Géneros</div>
+                <ul id="fuentes-generos" class="fuentes"></ul>
+            </div>
+            <div class="grupo">
+                <div class="grupo-tit">Mis listas</div>
+                <ul id="fuentes-listas" class="fuentes"></ul>
+            </div>
+        </aside>
+
+        <!-- ---- CENTRO: navegador ---- -->
+        <main class="navegador">
+            <div class="nav-cabecera">
+                <div>
+                    <h2 id="fuente-nombre">Toda la colección</h2>
+                    <div id="fuente-info" class="fuente-stats"></div>
+                </div>
+                <div class="nav-acciones">
+                    <div class="filtro-bpm">
+                        <span>BPM</span>
+                        <input type="number" id="bpm-min" placeholder="mín" min="0">
+                        <span>–</span>
+                        <input type="number" id="bpm-max" placeholder="máx" min="0">
+                    </div>
+                    <button id="btn-cargar-todo" class="btn oculto">Cargar todo en el set →</button>
+                    <div id="lote-acciones" class="lote oculto">
+                        <input type="text" id="genero-lote" list="lista-generos" placeholder="Género…">
+                        <button id="btn-aplicar-lote" class="btn">Aplicar a selección</button>
+                        <button id="btn-ia-nombres" class="btn ia">🤖 Arreglar nombres</button>
+                        <button id="btn-ia-genero" class="btn ia">🤖 Sugerir género</button>
+                        <button id="btn-add-seleccion" class="btn primario">Añadir al set →</button>
+                    </div>
+                </div>
+            </div>
+            <div class="tabla-cont">
+                <table id="tabla-tracks" class="tabla">
+                    <thead>
+                        <tr>
+                            <th class="c-check"><input type="checkbox" id="check-todos"></th>
+                            <th class="c-cover"></th>
+                            <th class="c-play"></th>
+                            <th data-orden="artista">Artista</th>
+                            <th data-orden="titulo">Título</th>
+                            <th data-orden="genero">Género</th>
+                            <th data-orden="bpm" class="c-bpm">BPM</th>
+                            <th data-orden="tonalidad" class="c-key">Key</th>
+                            <th data-orden="energia" class="c-energy">Energy</th>
+                            <th data-orden="duracion" class="c-dur">Dur.</th>
+                            <th class="c-add"></th>
+                        </tr>
+                    </thead>
+                    <tbody id="cuerpo-tracks"></tbody>
+                </table>
+                <div id="vacio-nav" class="vacio oculto"></div>
+            </div>
+        </main>
+
+        <!-- ---- DERECHA: set en preparación ---- -->
+        <aside class="prep" id="prep-panel">
+            <div class="prep-cabecera">
+                <h2>🎚 Preparando set</h2>
+                <input type="text" id="nombre-set" placeholder="Nombre del set (ej: Techno 128)">
+                <div class="armar-set">
+                    <input type="text" id="desc-set" placeholder="🤖 Describe un set y lo armo…">
+                    <button id="btn-armar-set" class="btn ia">Armar</button>
+                </div>
+            </div>
+            <div class="prep-lista-cont">
+                <ol id="prep-lista" class="prep-lista"></ol>
+                <div id="prep-vacio" class="prep-vacio">
+                    Arrastra canciones aquí, o usa el botón <b>＋</b> para añadirlas.
+                </div>
+            </div>
+            <div class="prep-pie">
+                <span id="prep-resumen" class="sub"></span>
+                <div class="prep-orden">
+                    <span>Ordenar por:</span>
+                    <button id="btn-orden-bpm" class="btn sutil">BPM ↑</button>
+                    <button id="btn-orden-key" class="btn sutil">Tonalidad</button>
+                    <button id="btn-ia-recomendar" class="btn ia">🤖 Recomendar</button>
+                </div>
+                <div class="prep-botones">
+                    <button id="btn-guardar-set" class="btn primario">💾 Guardar</button>
+                    <button id="btn-exportar-set" class="btn">📤 Exportar</button>
+                    <button id="btn-vaciar-set" class="btn sutil">Vaciar</button>
+                </div>
+            </div>
+        </aside>
+    </div>
+
+    <!-- ================= REPRODUCTOR ================= -->
+    <div id="reproductor" class="reproductor oculto">
+        <img id="rep-cover" class="rep-cover" alt="">
+        <div class="rep-info">
+            <div id="rep-titulo" class="rep-titulo">—</div>
+            <div id="rep-artista" class="rep-artista"></div>
+        </div>
+        <button id="rep-play" class="rep-play" title="Reproducir / Pausa">▶</button>
+        <div class="rep-centro">
+            <div class="rep-linea">
+                <span id="rep-tiempo" class="rep-t">0:00</span>
+                <div class="rep-wave-cont">
+                    <canvas id="rep-wave" class="rep-wave"></canvas>
+                </div>
+                <span id="rep-total" class="rep-t">0:00</span>
+            </div>
+        </div>
+        <div class="rep-vol">
+            <span>🔊</span>
+            <input type="range" id="rep-volumen" min="0" max="100" value="90">
+        </div>
+        <button id="rep-cerrar" class="rep-cerrar" title="Cerrar">✕</button>
+        <audio id="audio-el"></audio>
+    </div>
+
+</div>
+
+<!-- ================= CHAT CON LA IA ================= -->
+<div id="chat-drawer" class="chat-drawer oculto">
+    <div class="chat-cab">
+        <h2>💬 Chat</h2>
+        <div class="chat-cab-acc">
+            <button id="chat-limpiar" class="btn sutil" title="Empezar de nuevo">Limpiar</button>
+            <button id="chat-cerrar" class="rep-cerrar" title="Cerrar">✕</button>
+        </div>
+    </div>
+    <div id="chat-mensajes" class="chat-mensajes"></div>
+    <div class="chat-entrada">
+        <textarea id="chat-input" rows="1" placeholder="Escribe a la IA… (ej: ármame un warm-up melódico 120-124)"></textarea>
+        <button id="chat-enviar" class="btn primario">➤</button>
+    </div>
+</div>
+
+<!-- ================= MODAL GENÉRICO ================= -->
+<div id="modal-fondo" class="modal-fondo oculto">
+    <div class="modal">
+        <div class="modal-cab">
+            <h2 id="modal-titulo"></h2>
+            <button id="modal-cerrar" class="rep-cerrar">✕</button>
+        </div>
+        <div id="modal-cuerpo" class="modal-cuerpo"></div>
+        <div id="modal-pie" class="modal-pie"></div>
+    </div>
+</div>
+
+<!-- ================= MENÚ CONTEXTUAL (clic derecho) ================= -->
+<div id="menu-contextual" class="menu-ctx oculto"></div>
+
+<!-- ================= CAPA PARA ARRASTRAR ARCHIVOS ================= -->
+<div id="drop-overlay" class="drop-overlay oculto">
+    <div class="drop-caja">
+        <div class="drop-ico">📥</div>
+        <div class="drop-t1">Suelta aquí tu música</div>
+        <div class="drop-t2">Se copiará a tu carpeta y se añadirá a la biblioteca<br>(MP3, FLAC, WAV, AIFF, M4A, OGG — también carpetas)</div>
+    </div>
+</div>
+
+<div id="toast" class="toast oculto"></div>
+<datalist id="lista-generos"></datalist>
+<script src="{{ asset('app.js') }}"></script>
+</body>
+</html>
