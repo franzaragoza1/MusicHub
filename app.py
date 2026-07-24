@@ -25,6 +25,8 @@ import tags
 import cover as cover_mod
 import exporters
 import ai
+import actualizaciones
+from version import VERSION
 
 def _ruta_recurso(rel):
     """
@@ -625,6 +627,33 @@ def ia_chat():
         return jsonify({"ok": True, "respuesta": ai.chat(mensajes)})
     except Exception as e:
         return jsonify({"ok": False, "error": str(e)}), 400
+
+
+# ----------------------------------------------------------------------------
+# Actualizaciones
+# ----------------------------------------------------------------------------
+@app.route("/api/version")
+def api_version():
+    return jsonify({"version": VERSION})
+
+
+@app.route("/api/actualizacion")
+def api_actualizacion():
+    """Consulta si hay una versión más nueva publicada en GitHub."""
+    return jsonify(actualizaciones.comprobar())
+
+
+@app.route("/api/abrir-url", methods=["POST"])
+def api_abrir_url():
+    """Abre un enlace en el navegador del sistema (para descargar la versión nueva)."""
+    url = (request.json or {}).get("url", "")
+    if not url.startswith(("http://", "https://")):
+        return jsonify({"ok": False, "error": "Enlace no válido."}), 400
+    try:
+        webbrowser.open(url)
+    except Exception as e:
+        return jsonify({"ok": False, "error": str(e)}), 500
+    return jsonify({"ok": True})
 
 
 # ----------------------------------------------------------------------------

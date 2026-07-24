@@ -466,6 +466,18 @@ td.c-check { text-align: center; }
 ::-webkit-scrollbar-thumb { background: var(--borde2); border-radius: 5px; }
 ::-webkit-scrollbar-thumb:hover { background: #4a5468; }
 
+/* ===== aviso de actualización ===== */
+.banner-update {
+    position: fixed; top: 14px; left: 50%; transform: translateX(-50%);
+    z-index: 460; display: flex; align-items: center; gap: 12px;
+    background: var(--panel2); border: 1px solid var(--acc);
+    padding: 10px 12px 10px 16px; border-radius: 12px; box-shadow: var(--sombra);
+    max-width: min(92vw, 720px);
+}
+.banner-update .banner-ico { font-size: 18px; }
+#banner-update-txt { font-size: 13.5px; }
+.banner-update .btn { flex: none; }
+
 /* ===== menú contextual (clic derecho) ===== */
 .menu-ctx {
     position: fixed; z-index: 450; min-width: 236px;

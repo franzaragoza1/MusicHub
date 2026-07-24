@@ -1305,6 +1305,37 @@ window.addEventListener("drop", e => {
 });
 
 // =====================================================================
+//  COMPROBADOR DE ACTUALIZACIONES
+// =====================================================================
+async function comprobarActualizacion() {
+    let r;
+    try { r = await api("/api/actualizacion"); }
+    catch (_) { return; }                       // sin internet / repo privado: silencio
+    if (!r || !r.ok || !r.hay_nueva) return;
+    if (localStorage.getItem("update_omitir") === r.version_ultima) return;  // ya la descartaste
+
+    const banner = document.getElementById("banner-update");
+    document.getElementById("banner-update-txt").textContent =
+        `Hay una versión nueva de MusicHub (v${r.version_ultima}). Tú tienes la v${r.version_actual}.`;
+    banner.classList.remove("oculto");
+
+    document.getElementById("banner-update-descargar").onclick = async () => {
+        const url = r.url_descarga || r.url_release;
+        if (!url) { toast("No encuentro el archivo de descarga para tu sistema."); return; }
+        try { await post("/api/abrir-url", { url }); toast("Abriendo la descarga en tu navegador. Descomprime y reemplaza la carpeta del programa.", 8000); }
+        catch (e) { toast("⚠ " + e.message); }
+    };
+    document.getElementById("banner-update-notas").onclick = async () => {
+        if (r.url_release) { try { await post("/api/abrir-url", { url: r.url_release }); } catch (_) {} }
+    };
+    document.getElementById("banner-update-cerrar").onclick = () => {
+        localStorage.setItem("update_omitir", r.version_ultima);   // no volver a avisar de ESTA versión
+        banner.classList.add("oculto");
+    };
+}
+
+// =====================================================================
 //  ARRANQUE
 // =====================================================================
 cargarTodo();
+comprobarActualizacion();
