@@ -20,8 +20,23 @@ import unicodedata
 # Ojo: el guion solo separa si va rodeado de espacios (" - "), para no romper
 # géneros con guion como "Drum-n-Bass" o "Hip-Hop".
 _SEP = re.compile(r"\s*[/;,]\s*|\s+[-–—]\s+")
-_URL = re.compile(r"https?://|www\.|\.(?:com|net|org|io|co|fm)\b", re.I)
+_URL = re.compile(r"https?://|www\.", re.I)
 _FECHA = re.compile(r"\s*\d{1,2}[/.\-]\d{2,4}\s*$|\s+\d{4}\s*$")
+# Dominio suelto tipo "sharingdb.top", "hiphopde.com": palabra(s).tld
+_DOMINIO = re.compile(r"^[\w-]+(?:\.[\w-]+)+$")
+
+# Placeholders y etiquetas que no son un género de verdad.
+_BASURA = {
+    "other", "others", "otro", "otros", "otros generos", "otros géneros",
+    "unknown", "desconocido", "varios", "various", "misc", "miscellaneous",
+    "none", "sin genero", "sin género", "n/a", "na", "genre", "genero", "género",
+    "untagged", "sin etiquetar",
+}
+
+
+def _es_basura(g):
+    gl = g.lower().strip()
+    return bool(gl in _BASURA or _DOMINIO.match(gl))
 
 
 def normalizar(g):
@@ -37,8 +52,8 @@ def normalizar(g):
     g = _SEP.split(g)[0].strip()          # "House / Techno" -> "House"
     g = _FECHA.sub("", g).strip()         # por si quedó una fecha en el primer género
     g = re.sub(r"\s+", " ", g).strip(" -–—/;,.\t")
-    # Descartar restos sin sentido (vacío, solo números, una letra).
-    if len(g) < 2 or g.isdigit():
+    # Descartar restos sin sentido (vacío, solo números, una letra) y placeholders.
+    if len(g) < 2 or g.isdigit() or _es_basura(g):
         return ""
     return g
 
