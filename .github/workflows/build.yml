@@ -78,10 +78,24 @@ jobs:
           # Firma ad-hoc: evita el error "está dañada" y deja solo el aviso normal
           # de "desarrollador no identificado" (se abre con clic derecho -> Abrir).
           codesign --force --deep -s - "dist/MusicHub.app" || true
-          mkdir -p dmg_root
-          cp -R "dist/MusicHub.app" dmg_root/
-          ln -s /Applications dmg_root/Applications
-          hdiutil create -volname "MusicHub" -srcfolder dmg_root -ov -format UDZO "MusicHub-macOS.dmg"
+
+          brew install create-dmg
+
+          rm -f MusicHub-macOS.dmg
+          # create-dmg a veces devuelve un código != 0 por avisos de AppleScript
+          # en el entorno sin pantalla de CI aunque el .dmg se cree bien; por eso
+          # no cortamos con el fallo y comprobamos el archivo al final.
+          create-dmg \
+            --volname "MusicHub" \
+            --volicon "logos/icon.icns" \
+            --window-size 600 400 \
+            --icon-size 100 \
+            --icon "MusicHub.app" 150 190 \
+            --hide-extension "MusicHub.app" \
+            --app-drop-link 450 190 \
+            "MusicHub-macOS.dmg" \
+            "dist/MusicHub.app" || true
+          test -f MusicHub-macOS.dmg
       - name: Subir DMG (macOS)
         if: runner.os == 'macOS'
         uses: actions/upload-artifact@v4

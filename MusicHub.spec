@@ -39,6 +39,11 @@ if os.path.exists("_clave_embebida.py"):
 # (para que no aparezca ninguna ventana negra). Local: MUSICHUB_CONSOLE=1.
 CONSOLA = bool(os.environ.get("MUSICHUB_CONSOLE"))
 
+# Icono de la app: .ico en Windows (exe, barra de tareas), .icns en macOS (Dock).
+ICONO_WIN = "logos/icon.ico"
+ICONO_MAC = "logos/icon.icns"
+ICONO_EXE = ICONO_WIN if sys.platform == "win32" else (ICONO_MAC if sys.platform == "darwin" else None)
+
 a = Analysis(
     ["app.py"],
     pathex=[],
@@ -70,6 +75,7 @@ exe = EXE(
     target_arch=None,
     codesign_identity=None,
     entitlements_file=None,
+    icon=ICONO_EXE,
 )
 
 coll = COLLECT(
@@ -87,7 +93,7 @@ if sys.platform == "darwin":
     app = BUNDLE(
         coll,
         name="MusicHub.app",
-        icon=None,
+        icon=ICONO_MAC,
         bundle_identifier="com.musichub.app",
         info_plist={
             "NSHighResolutionCapable": True,

@@ -17,6 +17,7 @@ DisableProgramGroupPage=yes
 PrivilegesRequired=lowest
 OutputDir=Output
 OutputBaseFilename=MusicHub-Windows-Setup
+SetupIconFile=logos\icon.ico
 Compression=lzma2/max
 SolidCompression=yes
 WizardStyle=modern
