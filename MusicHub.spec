@@ -30,6 +30,11 @@ for paquete in [
     except Exception as e:
         print(f"[spec] Aviso: no se pudo coleccionar {paquete}: {e}")
 
+# Clave gratis embebida (si el CI la generó desde un secreto). Se incluye en el
+# ejecutable para que la IA funcione sin configurar nada. No está en el repo.
+if os.path.exists("_clave_embebida.py"):
+    hiddenimports.append("_clave_embebida")
+
 # Con console=True se ve la salida (útil para depurar). Por defecto sin consola
 # (para que no aparezca ninguna ventana negra). Local: MUSICHUB_CONSOLE=1.
 CONSOLA = bool(os.environ.get("MUSICHUB_CONSOLE"))

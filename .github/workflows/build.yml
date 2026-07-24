@@ -44,6 +44,23 @@ jobs:
           pip install -r requirements.txt
           pip install pyinstaller
 
+      # Opcional: si defines el secreto MUSICHUB_GROQ_KEY en el repo, se incrusta
+      # en el ejecutable para que la IA (Groq) funcione sin configurar nada.
+      # El archivo está en .gitignore: nunca se sube al repositorio.
+      - name: Incrustar clave gratis de Groq (opcional)
+        shell: python
+        env:
+          GK: ${{ secrets.MUSICHUB_GROQ_KEY }}
+        run: |
+          import os
+          gk = os.environ.get("GK", "")
+          if gk:
+              with open("_clave_embebida.py", "w", encoding="utf-8") as f:
+                  f.write("GROQ_KEY = %r\n" % gk)
+              print("Clave Groq incrustada en el build.")
+          else:
+              print("Sin secreto MUSICHUB_GROQ_KEY: la app pedira la clave en Ajustes.")
+
       - name: Compilar con PyInstaller
         run: pyinstaller --noconfirm MusicHub.spec
 

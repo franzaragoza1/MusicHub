@@ -484,6 +484,15 @@ td.c-check { text-align: center; }
 #banner-update-txt { font-size: 13.5px; }
 .banner-update .btn { flex: none; }
 
+/* ===== ajustes de IA: bloques de proveedor ===== */
+.ia-prov { border: 1px solid var(--borde); border-radius: 10px; padding: 12px; margin-bottom: 10px; display: flex; flex-direction: column; gap: 8px; }
+.ia-prov.activo { border-color: var(--acc); background: var(--acc-dim); }
+.ia-prov-cab { display: flex; align-items: center; gap: 8px; cursor: pointer; }
+.ia-prov-cab input[type=radio] { accent-color: var(--acc); }
+.ia-ok { margin-left: auto; color: var(--verde); font-size: 11px; }
+.ia-link { color: var(--acc); font-size: 12px; text-decoration: none; width: fit-content; }
+.ia-link:hover { text-decoration: underline; }
+
 /* ===== menú contextual (clic derecho) ===== */
 .menu-ctx {
     position: fixed; z-index: 450; min-width: 236px;

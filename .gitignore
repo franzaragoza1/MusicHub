@@ -13,6 +13,9 @@ musichub.db-shm
 musichub.db-wal
 exports/
 
+# Clave gratis embebida en el build (la genera el CI desde un secreto; NUNCA en el repo)
+_clave_embebida.py
+
 # Ajustes locales de Claude Code
 .claude/
 

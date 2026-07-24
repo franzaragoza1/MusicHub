@@ -18,16 +18,72 @@ import urllib.error
 
 import database as db
 
+# Proveedores de IA. Ambos hablan la API compatible con OpenAI (chat/completions),
+# así que el resto del código es idéntico para los dos.
+GROQ_URL = "https://api.groq.com/openai/v1/chat/completions"
 OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions"
-# Modelo por defecto (editable en Ajustes): barato y disponible en OpenRouter.
-DEFAULT_MODEL = "openai/gpt-4o-mini"
+
+PROVEEDORES = {
+    "groq": {
+        "nombre": "Groq (gratis)",
+        "url": GROQ_URL,
+        "modelo_defecto": "llama-3.3-70b-versatile",
+        "clave_setting": "groq_key",
+        "modelo_setting": "groq_model",
+        "url_clave": "https://console.groq.com/keys",
+        "pista_clave": "gsk_...",
+    },
+    "openrouter": {
+        "nombre": "OpenRouter (extra)",
+        "url": OPENROUTER_URL,
+        "modelo_defecto": "openai/gpt-4o-mini",
+        "clave_setting": "openrouter_key",
+        "modelo_setting": "openrouter_model",
+        "url_clave": "https://openrouter.ai/keys",
+        "pista_clave": "sk-or-...",
+    },
+}
+PROVEEDOR_DEFECTO = "groq"
+# Compatibilidad con referencias antiguas.
+DEFAULT_MODEL = PROVEEDORES["openrouter"]["modelo_defecto"]
 
 
-def get_config():
-    return {
-        "key": db.get_setting("openrouter_key", "") or "",
-        "model": db.get_setting("openrouter_model", DEFAULT_MODEL) or DEFAULT_MODEL,
-    }
+def _clave_embebida(proveedor):
+    """
+    Clave opcional incrustada en el ejecutable, para que la IA funcione desde el
+    primer momento sin configurar nada. NUNCA está en el repositorio: el CI la
+    genera en un archivo aparte a partir de un secreto de GitHub. Si no existe,
+    simplemente no hay clave por defecto y se pide en Ajustes.
+    """
+    try:
+        import _clave_embebida as ce
+    except Exception:
+        return ""
+    return getattr(ce, f"{proveedor.upper()}_KEY", "") or ""
+
+
+def proveedor_activo():
+    prov = db.get_setting("ia_proveedor", "") or ""
+    if prov in PROVEEDORES:
+        return prov
+    # Sin elección explícita: si el usuario ya tenía OpenRouter configurado (y aún
+    # no Groq), lo respetamos para no romperle la IA. Si no, Groq (gratis) por defecto.
+    tiene_or = bool(db.get_setting("openrouter_key", "") or "")
+    tiene_groq = bool((db.get_setting("groq_key", "") or "") or _clave_embebida("groq"))
+    if tiene_or and not tiene_groq:
+        return "openrouter"
+    return PROVEEDOR_DEFECTO
+
+
+def get_config(proveedor=None):
+    prov = proveedor or proveedor_activo()
+    p = PROVEEDORES.get(prov, PROVEEDORES[PROVEEDOR_DEFECTO])
+    key = db.get_setting(p["clave_setting"], "") or ""
+    if not key:
+        key = _clave_embebida(prov)   # clave gratis del build, si la hay
+    modelo = db.get_setting(p["modelo_setting"], p["modelo_defecto"]) or p["modelo_defecto"]
+    return {"proveedor": prov, "url": p["url"], "key": key,
+            "model": modelo, "nombre": p["nombre"]}
 
 
 def configurada():
@@ -35,10 +91,10 @@ def configurada():
 
 
 def _chat_raw(mensajes, max_tokens=1600, temperature=0.3):
-    """Llama a OpenRouter con una lista completa de mensajes."""
+    """Llama al proveedor de IA activo (Groq/OpenRouter) con una lista de mensajes."""
     cfg = get_config()
     if not cfg["key"]:
-        raise RuntimeError("No has configurado la clave de OpenRouter en Ajustes.")
+        raise RuntimeError("La IA no está configurada. Actívala en Ajustes (es gratis con Groq).")
     body = {
         "model": cfg["model"],
         "messages": mensajes,
@@ -46,7 +102,7 @@ def _chat_raw(mensajes, max_tokens=1600, temperature=0.3):
         "temperature": temperature,
     }
     req = urllib.request.Request(
-        OPENROUTER_URL,
+        cfg["url"],
         data=json.dumps(body).encode("utf-8"),
         headers={
             "Authorization": f"Bearer {cfg['key']}",
@@ -55,18 +111,19 @@ def _chat_raw(mensajes, max_tokens=1600, temperature=0.3):
             "X-Title": "MusicHub",
         },
     )
+    nombre = cfg["nombre"]
     try:
         with urllib.request.urlopen(req, timeout=120) as r:
             resp = json.load(r)
     except urllib.error.HTTPError as e:
         detalle = e.read().decode("utf-8", errors="ignore")[:300]
-        raise RuntimeError(f"OpenRouter devolvió error {e.code}: {detalle}")
+        raise RuntimeError(f"{nombre} devolvió error {e.code}: {detalle}")
     except Exception as e:
-        raise RuntimeError(f"No se pudo conectar con OpenRouter: {e}")
+        raise RuntimeError(f"No se pudo conectar con {nombre}: {e}")
     try:
         return resp["choices"][0]["message"]["content"]
     except (KeyError, IndexError):
-        raise RuntimeError("Respuesta inesperada de OpenRouter.")
+        raise RuntimeError(f"Respuesta inesperada de {nombre}.")
 
 
 def _chat(system, user, max_tokens=1600):

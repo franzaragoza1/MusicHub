@@ -513,30 +513,43 @@ def importar():
 # Arranque
 # ----------------------------------------------------------------------------
 # ----------------------------------------------------------------------------
-# IA (OpenRouter) — opcional
+# IA — opcional (Groq gratis por defecto, OpenRouter como extra)
 # ----------------------------------------------------------------------------
 @app.route("/api/ia/ajustes", methods=["GET"])
 def ia_get_ajustes():
-    cfg = ai.get_config()
-    # No devolvemos la clave completa, solo si existe y sus últimos caracteres.
-    key = cfg["key"]
-    return jsonify({
-        "configurada": bool(key),
-        "clave_pista": ("…" + key[-4:]) if key else "",
-        "modelo": cfg["model"],
-        "modelo_defecto": ai.DEFAULT_MODEL,
-    })
+    activo = ai.proveedor_activo()
+    proveedores = []
+    for pid, p in ai.PROVEEDORES.items():
+        cfg = ai.get_config(pid)
+        key = cfg["key"]
+        proveedores.append({
+            "id": pid,
+            "nombre": p["nombre"],
+            "configurada": bool(key),
+            # No devolvemos la clave completa, solo una pista.
+            "clave_pista": ("…" + key[-4:]) if key else "",
+            "modelo": cfg["model"],
+            "modelo_defecto": p["modelo_defecto"],
+            "url_clave": p["url_clave"],
+            "pista_clave": p["pista_clave"],
+        })
+    return jsonify({"activo": activo, "proveedores": proveedores})
 
 
 @app.route("/api/ia/ajustes", methods=["POST"])
 def ia_set_ajustes():
     data = request.json or {}
-    if "clave" in data:
-        clave = (data.get("clave") or "").strip()
-        if clave:  # solo la sobrescribimos si mandan una nueva no vacía
-            db.set_setting("openrouter_key", clave)
-    if "modelo" in data:
-        db.set_setting("openrouter_model", (data.get("modelo") or "").strip() or ai.DEFAULT_MODEL)
+    # Proveedor activo (cuál usa la app).
+    if data.get("proveedor") in ai.PROVEEDORES:
+        db.set_setting("ia_proveedor", data["proveedor"])
+    # Clave y modelo de cada proveedor (solo se sobrescribe la clave si mandan una).
+    for pid, p in ai.PROVEEDORES.items():
+        clave = data.get(f"{pid}_clave")
+        if clave is not None and clave.strip():
+            db.set_setting(p["clave_setting"], clave.strip())
+        modelo = data.get(f"{pid}_modelo")
+        if modelo is not None:
+            db.set_setting(p["modelo_setting"], modelo.strip() or p["modelo_defecto"])
     return jsonify({"ok": True})
 
 
@@ -551,7 +564,7 @@ def ia_probar():
 
 def _ia_guard():
     if not ai.configurada():
-        return jsonify({"ok": False, "error": "Configura tu clave de OpenRouter en Ajustes (⚙)."}), 400
+        return jsonify({"ok": False, "error": "Activa la IA en Ajustes — es gratis con Groq."}), 400
     return None
 
 

@@ -862,49 +862,55 @@ function ocupar(btn, texto) {
 }
 
 // =====================================================================
-//  AJUSTES DE IA (OpenRouter)
+//  AJUSTES DE IA (Groq gratis por defecto, OpenRouter como extra)
 // =====================================================================
 document.getElementById("btn-ajustes").onclick = async () => {
-    const a = await api("/api/ia/ajustes");
-    const sugeridos = [
-        "openai/gpt-4o-mini", "anthropic/claude-3.5-sonnet",
-        "google/gemini-flash-1.5", "meta-llama/llama-3.1-70b-instruct",
-    ];
-    abrirModal("Ajustes de IA (OpenRouter)", `
-        <p class="ayuda">La IA es opcional. Solo se envía texto (artista, título, género…), nunca tu música. Consigue una clave gratis en openrouter.ai. Todo se guarda solo en tu ordenador.</p>
-        <div class="campo">
-            <label>Clave de OpenRouter</label>
-            <input type="password" id="in-clave" placeholder="${a.configurada ? "Guardada (" + a.clave_pista + ") — escribe para cambiarla" : "sk-or-..."}">
-        </div>
-        <div class="campo">
-            <label>Modelo</label>
-            <input type="text" id="in-modelo" list="modelos-sug" value="${esc(a.modelo)}">
-            <datalist id="modelos-sug">${sugeridos.map(s => `<option value="${s}">`).join("")}</datalist>
-            <span class="ayuda">Puedes poner cualquier modelo de OpenRouter. Por defecto: ${esc(a.modelo_defecto)}</span>
-        </div>
+    const a = await api("/api/ia/ajustes");   // { activo, proveedores: [...] }
+    const bloque = p => `
+        <div class="ia-prov ${p.id === a.activo ? "activo" : ""}">
+            <label class="ia-prov-cab">
+                <input type="radio" name="ia-prov" value="${p.id}" ${p.id === a.activo ? "checked" : ""}>
+                <b>${esc(p.nombre)}</b>
+                ${p.configurada ? `<span class="ia-ok">clave ${esc(p.clave_pista)}</span>` : ""}
+            </label>
+            <input type="password" id="clave-${p.id}" placeholder="${p.configurada ? "Guardada — escribe para cambiarla" : esc(p.pista_clave)}">
+            <input type="text" id="modelo-${p.id}" value="${esc(p.modelo)}" title="Modelo (por defecto ${esc(p.modelo_defecto)})">
+            <a href="#" class="ia-link" data-url="${esc(p.url_clave)}">Consigue tu clave gratis →</a>
+        </div>`;
+    abrirModal("Ajustes de IA", `
+        <p class="ayuda">La IA es opcional. Solo se envía texto (artista, título, género…), <b>nunca tu música</b>. Por defecto usa <b>Groq</b>, que es gratis (crea tu clave gratuita en 30 s). OpenRouter es un extra para modelos de pago. Todo se guarda solo en tu ordenador.</p>
+        ${a.proveedores.map(bloque).join("")}
         <p id="ajustes-msg" class="msg"></p>
     `, `
-        <button id="btn-probar-ia" class="btn">Probar conexión</button>
+        <button id="btn-probar-ia" class="btn">Probar</button>
         <button id="btn-guardar-ia" class="btn primario">Guardar</button>
     `);
+    document.querySelectorAll(".ia-link").forEach(el => el.onclick = async (ev) => {
+        ev.preventDefault();
+        try { await post("/api/abrir-url", { url: el.dataset.url }); }
+        catch (_) { toast("Abre: " + el.dataset.url, 6000); }
+    });
+    const recoger = () => {
+        const d = { proveedor: document.querySelector('input[name="ia-prov"]:checked').value };
+        a.proveedores.forEach(p => {
+            d[`${p.id}_clave`] = document.getElementById(`clave-${p.id}`).value;
+            d[`${p.id}_modelo`] = document.getElementById(`modelo-${p.id}`).value;
+        });
+        return d;
+    };
     document.getElementById("btn-guardar-ia").onclick = async () => {
-        const clave = document.getElementById("in-clave").value;
-        const modelo = document.getElementById("in-modelo").value;
-        await post("/api/ia/ajustes", { clave, modelo });
+        await post("/api/ia/ajustes", recoger());
         toast("Ajustes de IA guardados.");
         cerrarModal();
     };
     document.getElementById("btn-probar-ia").onclick = async (e) => {
-        await post("/api/ia/ajustes", {
-            clave: document.getElementById("in-clave").value,
-            modelo: document.getElementById("in-modelo").value,
-        });
+        await post("/api/ia/ajustes", recoger());
         const msg = document.getElementById("ajustes-msg");
         const rest = ocupar(e.target, "Probando…");
         try {
             await post("/api/ia/probar", {});
             msg.className = "msg ok"; msg.textContent = "Conexión correcta.";
-        } catch (err) { msg.className = "msg error"; msg.textContent = "" + err.message; }
+        } catch (err) { msg.className = "msg error"; msg.textContent = err.message; }
         finally { rest(); }
     };
 };
