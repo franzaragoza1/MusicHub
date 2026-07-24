@@ -874,7 +874,8 @@ document.getElementById("btn-ajustes").onclick = async () => {
                 ${p.configurada ? `<span class="ia-ok">clave ${esc(p.clave_pista)}</span>` : ""}
             </label>
             <input type="password" id="clave-${p.id}" placeholder="${p.configurada ? "Guardada — escribe para cambiarla" : esc(p.pista_clave)}">
-            <input type="text" id="modelo-${p.id}" value="${esc(p.modelo)}" title="Modelo (por defecto ${esc(p.modelo_defecto)})">
+            <input type="text" id="modelo-${p.id}" value="${esc(p.modelo)}" list="modelos-${p.id}" title="Modelo (por defecto ${esc(p.modelo_defecto)})">
+            <datalist id="modelos-${p.id}">${(p.modelos_sugeridos || []).map(m => `<option value="${esc(m)}">`).join("")}</datalist>
             <a href="#" class="ia-link" data-url="${esc(p.url_clave)}">Consigue tu clave gratis →</a>
         </div>`;
     abrirModal("Ajustes de IA", `

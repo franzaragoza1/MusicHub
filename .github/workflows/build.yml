@@ -20,11 +20,11 @@ jobs:
             empaquetar: |
               powershell Compress-Archive -Path dist/MusicHub/* -DestinationPath MusicHub-Windows.zip
             artefacto: MusicHub-Windows.zip
-          - os: macos-13   # Intel: el .app resultante corre en Mac Intel y Apple Silicon (Rosetta)
+          - os: macos-14   # Apple Silicon (M1/M2/M3/M4): runners con disponibilidad real
             nombre: macOS
             empaquetar: |
-              ditto -c -k --keepParent "dist/MusicHub.app" MusicHub-macOS.zip
-            artefacto: MusicHub-macOS.zip
+              ditto -c -k --keepParent "dist/MusicHub.app" MusicHub-macOS-AppleSilicon.zip
+            artefacto: MusicHub-macOS-AppleSilicon.zip
 
     runs-on: ${{ matrix.os }}
     name: Compilar (${{ matrix.nombre }})

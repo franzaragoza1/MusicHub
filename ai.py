@@ -27,11 +27,17 @@ PROVEEDORES = {
     "groq": {
         "nombre": "Groq (gratis)",
         "url": GROQ_URL,
-        "modelo_defecto": "llama-3.3-70b-versatile",
+        "modelo_defecto": "openai/gpt-oss-120b",
         "clave_setting": "groq_key",
         "modelo_setting": "groq_model",
         "url_clave": "https://console.groq.com/keys",
         "pista_clave": "gsk_...",
+        "modelos_sugeridos": [
+            "openai/gpt-oss-120b",
+            "openai/gpt-oss-20b",
+            "llama-3.3-70b-versatile",
+            "llama-3.1-8b-instant",
+        ],
     },
     "openrouter": {
         "nombre": "OpenRouter (extra)",
@@ -41,6 +47,12 @@ PROVEEDORES = {
         "modelo_setting": "openrouter_model",
         "url_clave": "https://openrouter.ai/keys",
         "pista_clave": "sk-or-...",
+        "modelos_sugeridos": [
+            "openai/gpt-4o-mini",
+            "anthropic/claude-3.5-sonnet",
+            "google/gemini-flash-1.5",
+            "meta-llama/llama-3.3-70b-instruct",
+        ],
     },
 }
 PROVEEDOR_DEFECTO = "groq"

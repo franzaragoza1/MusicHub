@@ -532,6 +532,7 @@ def ia_get_ajustes():
             "modelo_defecto": p["modelo_defecto"],
             "url_clave": p["url_clave"],
             "pista_clave": p["pista_clave"],
+            "modelos_sugeridos": p.get("modelos_sugeridos", []),
         })
     return jsonify({"activo": activo, "proveedores": proveedores})
 
