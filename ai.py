@@ -87,8 +87,7 @@ def proveedor_activo():
     return PROVEEDOR_DEFECTO
 
 
-def get_config(proveedor=None):
-    prov = proveedor or proveedor_activo()
+def _config_de(prov):
     p = PROVEEDORES.get(prov, PROVEEDORES[PROVEEDOR_DEFECTO])
     key = db.get_setting(p["clave_setting"], "") or ""
     if not key:
@@ -96,6 +95,23 @@ def get_config(proveedor=None):
     modelo = db.get_setting(p["modelo_setting"], p["modelo_defecto"]) or p["modelo_defecto"]
     return {"proveedor": prov, "url": p["url"], "key": key,
             "model": modelo, "nombre": p["nombre"]}
+
+
+def get_config(proveedor=None):
+    # Config de un proveedor concreto (lo usa la pantalla de Ajustes).
+    if proveedor:
+        return _config_de(proveedor)
+    # Proveedor activo; si no tiene clave, cae a cualquier otro que sí la tenga,
+    # para que la IA "simplemente funcione" si hay al menos una clave configurada.
+    prov = proveedor_activo()
+    cfg = _config_de(prov)
+    if not cfg["key"]:
+        for otro in PROVEEDORES:
+            if otro != prov:
+                alt = _config_de(otro)
+                if alt["key"]:
+                    return alt
+    return cfg
 
 
 def configurada():
