@@ -797,8 +797,10 @@ async function manejarErrorAudio(track) {
     const fmt = (track.formato || "audio").toUpperCase();
     if (!existe) {
         toast("El archivo ya no está en su ruta (¿lo moviste o renombraste?). Pulsa «Escanear» para actualizar la biblioteca.", 8000);
+    } else if (["aiff", "aif"].includes((track.formato || "").toLowerCase())) {
+        toast(`El formato AIFF no se puede reproducir aquí (tampoco en Chrome/Edge). Convierte esos temas a WAV/FLAC/MP3 si quieres oírlos. El archivo sigue intacto y el resto suena normal.`, 9000);
     } else {
-        toast(`Tu navegador no pudo decodificar este ${fmt}. Chrome y Edge reproducen la mayoría de formatos (incluido M4A/AAC); Firefox u otros pueden no hacerlo. El archivo sigue intacto.`, 8000);
+        toast(`No se pudo reproducir este ${fmt} (el archivo sigue intacto).`, 7000);
     }
 }
 
@@ -807,6 +809,10 @@ function reproducir(track) {
     if (reproEl.actual === track.id) { audio.paused ? audio.play() : audio.pause(); return; }
     reproEl.actual = track.id;
     audio.src = `/api/audio/${track.id}`;
+    // load() resetea el elemento y limpia cualquier estado de error previo. Sin
+    // esto, un solo archivo no decodificable (p.ej. AIFF) deja el reproductor
+    // bloqueado y NINGÚN tema siguiente vuelve a sonar hasta recargar.
+    audio.load();
     // El evento 'error' del <audio> se encarga de diagnosticar los fallos reales.
     audio.play().catch(() => {});
     repBar.classList.remove("oculto");
@@ -826,7 +832,12 @@ document.getElementById("rep-cerrar").onclick = () => {
 };
 audio.addEventListener("error", () => {
     if (reproEl.actual == null) return;      // vaciado intencionado: no es un fallo real
-    manejarErrorAudio(PORID.get(reproEl.actual));
+    const t = PORID.get(reproEl.actual);
+    // Soltamos el tema fallido para que no deje el reproductor "sonando" en falso;
+    // el load() del siguiente tema ya limpia el estado de error del elemento.
+    reproEl.actual = null;
+    renderNavegador(); renderPrep();
+    manejarErrorAudio(t);
 });
 audio.addEventListener("play", () => document.getElementById("rep-play").textContent = "⏸");
 audio.addEventListener("pause", () => document.getElementById("rep-play").textContent = "▶");
