@@ -11,17 +11,16 @@
 
     <!-- ================= BARRA SUPERIOR ================= -->
     <header class="topbar">
-        <div class="marca">🎧 <span>MusicHub</span></div>
+        <div class="marca"><img src="{{ asset('logo.png') }}" alt="MusicHub"></div>
         <div class="buscador">
-            <span class="lupa">🔍</span>
             <input type="text" id="buscar" placeholder="Buscar por artista, título o álbum…" spellcheck="false">
         </div>
         <div class="acciones">
-            <button id="btn-elegir-carpeta" class="btn">📁 Carpeta</button>
-            <button id="btn-escanear" class="btn primario">↻ Escanear</button>
-            <button id="btn-bpm" class="btn">⏱ Analizar (BPM + tonalidad)</button>
-            <button id="btn-chat" class="btn ia" title="Chat con la IA">💬 Chat</button>
-            <button id="btn-ajustes" class="btn" title="Ajustes de IA">⚙</button>
+            <button id="btn-elegir-carpeta" class="btn">Carpeta</button>
+            <button id="btn-escanear" class="btn primario">Escanear</button>
+            <button id="btn-bpm" class="btn">Analizar (BPM + tonalidad)</button>
+            <button id="btn-chat" class="btn ia" title="Chat con la IA">Chat</button>
+            <button id="btn-ajustes" class="btn" title="Ajustes de IA">Ajustes</button>
         </div>
     </header>
 
@@ -72,8 +71,8 @@
                     <div id="lote-acciones" class="lote oculto">
                         <input type="text" id="genero-lote" list="lista-generos" placeholder="Género…">
                         <button id="btn-aplicar-lote" class="btn">Aplicar a selección</button>
-                        <button id="btn-ia-nombres" class="btn ia">🤖 Arreglar nombres</button>
-                        <button id="btn-ia-genero" class="btn ia">🤖 Sugerir género</button>
+                        <button id="btn-ia-nombres" class="btn ia">Arreglar nombres</button>
+                        <button id="btn-ia-genero" class="btn ia">Sugerir género</button>
                         <button id="btn-add-seleccion" class="btn primario">Añadir al set →</button>
                     </div>
                 </div>
@@ -104,10 +103,10 @@
         <!-- ---- DERECHA: set en preparación ---- -->
         <aside class="prep" id="prep-panel">
             <div class="prep-cabecera">
-                <h2>🎚 Preparando set</h2>
+                <h2>Preparando set</h2>
                 <input type="text" id="nombre-set" placeholder="Nombre del set (ej: Techno 128)">
                 <div class="armar-set">
-                    <input type="text" id="desc-set" placeholder="🤖 Describe un set y lo armo…">
+                    <input type="text" id="desc-set" placeholder="Describe un set y lo armo…">
                     <button id="btn-armar-set" class="btn ia">Armar</button>
                 </div>
             </div>
@@ -123,11 +122,11 @@
                     <span>Ordenar por:</span>
                     <button id="btn-orden-bpm" class="btn sutil">BPM ↑</button>
                     <button id="btn-orden-key" class="btn sutil">Tonalidad</button>
-                    <button id="btn-ia-recomendar" class="btn ia">🤖 Recomendar</button>
+                    <button id="btn-ia-recomendar" class="btn ia">Recomendar</button>
                 </div>
                 <div class="prep-botones">
-                    <button id="btn-guardar-set" class="btn primario">💾 Guardar</button>
-                    <button id="btn-exportar-set" class="btn">📤 Exportar</button>
+                    <button id="btn-guardar-set" class="btn primario">Guardar</button>
+                    <button id="btn-exportar-set" class="btn">Exportar</button>
                     <button id="btn-vaciar-set" class="btn sutil">Vaciar</button>
                 </div>
             </div>
@@ -152,7 +151,7 @@
             </div>
         </div>
         <div class="rep-vol">
-            <span>🔊</span>
+            <span class="rep-vol-et">Vol</span>
             <input type="range" id="rep-volumen" min="0" max="100" value="90">
         </div>
         <button id="rep-cerrar" class="rep-cerrar" title="Cerrar">✕</button>
@@ -164,7 +163,7 @@
 <!-- ================= CHAT CON LA IA ================= -->
 <div id="chat-drawer" class="chat-drawer oculto">
     <div class="chat-cab">
-        <h2>💬 Chat</h2>
+        <h2>Chat</h2>
         <div class="chat-cab-acc">
             <button id="chat-limpiar" class="btn sutil" title="Empezar de nuevo">Limpiar</button>
             <button id="chat-cerrar" class="rep-cerrar" title="Cerrar">✕</button>
@@ -191,7 +190,6 @@
 
 <!-- ================= AVISO DE ACTUALIZACIÓN ================= -->
 <div id="banner-update" class="banner-update oculto">
-    <span class="banner-ico">🎉</span>
     <span id="banner-update-txt"></span>
     <button id="banner-update-descargar" class="btn primario">Descargar</button>
     <button id="banner-update-notas" class="btn sutil">Ver novedades</button>
@@ -204,7 +202,6 @@
 <!-- ================= CAPA PARA ARRASTRAR ARCHIVOS ================= -->
 <div id="drop-overlay" class="drop-overlay oculto">
     <div class="drop-caja">
-        <div class="drop-ico">📥</div>
         <div class="drop-t1">Suelta aquí tu música</div>
         <div class="drop-t2">Se copiará a tu carpeta y se añadirá a la biblioteca<br>(MP3, FLAC, WAV, AIFF, M4A, OGG — también carpetas)</div>
     </div>

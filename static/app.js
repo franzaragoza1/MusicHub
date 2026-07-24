@@ -85,7 +85,7 @@ async function cargarTodo() {
     renderNavegador();
     renderPrep();
     if (!c.carpeta && TRACKS.length === 0) {
-        toast("Bienvenido 🎧  Pulsa «📁 Carpeta» arriba para elegir tu música y luego «↻ Escanear».", 8000);
+        toast("Bienvenido. Pulsa «Carpeta» arriba para elegir tu música y luego «Escanear».", 8000);
     }
 }
 
@@ -96,9 +96,9 @@ function renderSidebar() {
     const sinGenero = TRACKS.filter(t => !t.genero).length;
     const sinBpm = TRACKS.filter(t => t.bpm == null).length;
     const fijas = [
-        { tipo: "coleccion", ico: "🎵", nombre: "Toda la colección", cont: TRACKS.length },
-        { tipo: "sin-genero", ico: "🏷️", nombre: "Sin género", cont: sinGenero },
-        { tipo: "sin-bpm", ico: "⏱️", nombre: "Sin BPM", cont: sinBpm },
+        { tipo: "coleccion", ico: "", nombre: "Toda la colección", cont: TRACKS.length },
+        { tipo: "sin-genero", ico: "", nombre: "Sin género", cont: sinGenero },
+        { tipo: "sin-bpm", ico: "", nombre: "Sin BPM", cont: sinBpm },
     ];
     document.getElementById("fuentes-fijas").innerHTML = fijas.map(f => filaFuente(f)).join("");
 
@@ -111,13 +111,13 @@ function renderSidebar() {
     const gens = Object.keys(conteo).sort((a, b) => a.localeCompare(b));
     const ulG = document.getElementById("fuentes-generos");
     ulG.innerHTML = gens.length
-        ? gens.map(g => filaFuente({ tipo: "genero", valor: g, ico: "♪", nombre: g, cont: conteo[g] })).join("")
+        ? gens.map(g => filaFuente({ tipo: "genero", valor: g, ico: "", nombre: g, cont: conteo[g] })).join("")
         : `<li class="vacio-lista">Aún no hay géneros</li>`;
 
     // listas guardadas
     const ulL = document.getElementById("fuentes-listas");
     ulL.innerHTML = LISTAS.length
-        ? LISTAS.map(p => filaFuente({ tipo: "playlist", valor: p.id, ico: "📋", nombre: p.nombre, cont: p.num, borrable: true })).join("")
+        ? LISTAS.map(p => filaFuente({ tipo: "playlist", valor: p.id, ico: "", nombre: p.nombre, cont: p.num, borrable: true })).join("")
         : `<li class="vacio-lista">Aún no hay listas</li>`;
 }
 // normaliza una subcarpeta a separador "/" y sin barras sobrantes
@@ -154,7 +154,7 @@ function renderCarpetas() {
         const act = fuente.tipo === "carpeta" && fuente.valor === "" ? "activa" : "";
         html += `<li class="fila-carpeta ${act}" data-tipo="carpeta" data-valor="" style="--nivel:0">
             <span class="carpeta-toggle"></span>
-            <span class="ico">📂</span><span class="txt">(en la carpeta raíz)</span><span class="cont">${enRaiz}</span></li>`;
+            <span class="ico"></span><span class="txt">(en la carpeta raíz)</span><span class="cont">${enRaiz}</span></li>`;
     }
 
     // Recorre el árbol en profundidad, pero solo "abre" (pinta) los hijos de
@@ -170,9 +170,8 @@ function renderCarpetas() {
             const toggle = tieneHijos
                 ? `<span class="carpeta-toggle" data-toggle="${esc(r)}">${expandida ? "▾" : "▸"}</span>`
                 : `<span class="carpeta-toggle"></span>`;
-            const ico = tieneHijos && expandida ? "📂" : "📁";
             html += `<li class="fila-carpeta ${act}" data-tipo="carpeta" data-valor="${esc(r)}" style="--nivel:${nivel}" title="${esc(r)}">
-                ${toggle}<span class="ico">${ico}</span><span class="txt">${esc(etiqueta)}</span><span class="cont">${nodos.get(r)}</span></li>`;
+                ${toggle}<span class="txt">${esc(etiqueta)}</span><span class="cont">${nodos.get(r)}</span></li>`;
             if (tieneHijos && expandida) pintarNivel(r, nivel + 1);
         }
     };
@@ -184,7 +183,6 @@ function filaFuente(f) {
     const act = (fuente.tipo === f.tipo && (f.valor === undefined || String(fuente.valor) === String(f.valor))) ? "activa" : "";
     const borrar = f.borrable ? `<span class="fuente-borrar" data-borrar="${f.valor}" title="Borrar lista">✕</span>` : "";
     return `<li class="${act}" data-tipo="${f.tipo}" data-valor="${esc(f.valor ?? "")}">
-        <span class="ico">${f.ico}</span>
         <span class="txt">${esc(f.nombre)}</span>
         <span class="cont">${f.cont}</span>${borrar}
     </li>`;
@@ -232,7 +230,7 @@ async function seleccionarFuente(tipo, valor) {
     } else if (tipo === "genero") {
         fuente = { tipo, valor, nombre: valor };
     } else if (tipo === "carpeta") {
-        const nombre = valor === "" ? "📂 En la carpeta raíz" : "📁 " + valor.replace(/\//g, " › ");
+        const nombre = valor === "" ? " En la carpeta raíz" : " " + valor.replace(/\//g, " › ");
         fuente = { tipo, valor, nombre };
     } else if (tipo === "sin-genero") {
         fuente = { tipo, nombre: "Sin género" };
@@ -347,9 +345,13 @@ function renderNavegador() {
     const vacio = document.getElementById("vacio-nav");
     if (lista.length === 0) {
         vacio.classList.remove("oculto");
-        vacio.textContent = TRACKS.length === 0
-            ? "Tu biblioteca está vacía. Elige tu carpeta de música y pulsa «Escanear»."
-            : "No hay canciones que coincidan con esta vista.";
+        if (TRACKS.length === 0) {
+            vacio.innerHTML = `<img class="vacio-logo" src="/static/logo.png" alt="MusicHub">
+                <div>Tu biblioteca está vacía. Elige tu carpeta de música y pulsa «Escanear».<br>
+                También puedes arrastrar aquí tus archivos o carpetas de música.</div>`;
+        } else {
+            vacio.textContent = "No hay canciones que coincidan con esta vista.";
+        }
     } else vacio.classList.add("oculto");
 
     actualizarLoteUI();
@@ -401,7 +403,7 @@ function editarEnergia(celda, id) {
                 await post(`/api/track/${id}/energia`, { valor });
                 track.energia = valor;
                 track.energia_origen = "manual";
-            } catch (err) { toast("⚠ " + err.message); }
+            } catch (err) { toast("" + err.message); }
         }
         renderNavegador();
     };
@@ -426,8 +428,8 @@ function editarCampo(celda, id, campo) {
             try {
                 const r = await post(`/api/track/${id}/campo`, { campo, valor });
                 track[campo] = valor;
-                if (r.aviso) toast("⚠ " + r.aviso);
-            } catch (err) { toast("⚠ " + err.message); }
+                if (r.aviso) toast("" + r.aviso);
+            } catch (err) { toast("" + err.message); }
         }
         renderNavegador();
     };
@@ -450,11 +452,11 @@ function editarGenero(celda, id) {
         try {
             const r = await post(`/api/track/${id}/genero`, { genero: valor });
             track.genero = valor;
-            if (r.aviso) toast("⚠ " + r.aviso);
+            if (r.aviso) toast("" + r.aviso);
             GENEROS = await api("/api/generos");
             document.getElementById("lista-generos").innerHTML = GENEROS.map(g => `<option value="${esc(g)}">`).join("");
             renderSidebar();
-        } catch (err) { toast("⚠ " + err.message); }
+        } catch (err) { toast("" + err.message); }
         renderNavegador();
     };
     inp.addEventListener("keydown", ev => {
@@ -490,10 +492,10 @@ document.getElementById("btn-aplicar-lote").onclick = async () => {
     try {
         const r = await post("/api/generos/lote", { ids, genero });
         ids.forEach(id => { const t = PORID.get(id); if (t) t.genero = genero; });
-        toast(r.aviso ? "⚠ " + r.aviso : `Género aplicado a ${ids.length} canciones.`);
+        toast(r.aviso ? "" + r.aviso : `Género aplicado a ${ids.length} canciones.`);
         GENEROS = await api("/api/generos");
         renderSidebar(); renderNavegador();
-    } catch (e) { toast("⚠ " + e.message); }
+    } catch (e) { toast("" + e.message); }
 };
 document.getElementById("btn-add-seleccion").onclick = () => anadirAlSet([...seleccion]);
 document.getElementById("btn-cargar-todo").onclick = () => {
@@ -599,13 +601,13 @@ document.getElementById("btn-orden-key").onclick = () => {
 // guardar / exportar / vaciar
 async function guardarSet(silencioso) {
     const nombre = document.getElementById("nombre-set").value.trim();
-    if (!nombre) { toast("⚠ Ponle un nombre al set antes de guardar."); return null; }
-    if (!prep.length) { toast("⚠ El set está vacío."); return null; }
+    if (!nombre) { toast("Ponle un nombre al set antes de guardar."); return null; }
+    if (!prep.length) { toast("El set está vacío."); return null; }
     const r = await post("/api/playlist", { nombre, track_ids: prep.map(t => t.id) });
     prepId = r.id;
     LISTAS = await api("/api/playlists");
     renderSidebar();
-    if (!silencioso) toast(`✅ Set "${nombre}" guardado con ${prep.length} canciones.`);
+    if (!silencioso) toast(`Set "${nombre}" guardado con ${prep.length} canciones.`);
     return r.id;
 }
 document.getElementById("btn-guardar-set").onclick = () => guardarSet(false);
@@ -619,8 +621,8 @@ document.getElementById("btn-exportar-set").onclick = async () => {
         const id = await guardarSet(true);   // guardamos primero para exportar
         if (!id) return;
         const r = await post(`/api/playlist/${id}/exportar`, {});
-        toast(`✅ Exportado a la carpeta "exports":\n\n• Rekordbox:  ${r.rekordbox.split("\\").pop()}\n• Traktor:  ${r.traktor.split("\\").pop()}\n\nÁbrelos manualmente en cada programa (ver LEEME.txt).`, 11000);
-    } catch (e) { toast("⚠ " + e.message); }
+        toast(`Exportado a la carpeta "exports":\n\n• Rekordbox:  ${r.rekordbox.split("\\").pop()}\n• Traktor:  ${r.traktor.split("\\").pop()}\n\nÁbrelos manualmente en cada programa (ver LEEME.txt).`, 11000);
+    } catch (e) { toast("" + e.message); }
 };
 
 // =====================================================================
@@ -632,17 +634,17 @@ document.getElementById("btn-elegir-carpeta").onclick = async () => {
     try {
         const r = await post("/api/elegir-carpeta", {});
         if (r.cancelado) toast("No elegiste ninguna carpeta.");
-        else if (r.carpeta) toast(`Carpeta elegida:\n${r.carpeta}\n\nAhora pulsa «↻ Escanear».`, 6000);
-    } catch (e) { toast("⚠ " + e.message); }
+        else if (r.carpeta) toast(`Carpeta elegida:\n${r.carpeta}\n\nAhora pulsa «Escanear».`, 6000);
+    } catch (e) { toast("" + e.message); }
     finally { btn.disabled = false; btn.textContent = orig; }
 };
 document.getElementById("btn-escanear").onclick = async () => {
     try { await post("/api/escanear", {}); vigilar("/api/escaneo/estado", "Escaneando"); }
-    catch (e) { toast("⚠ " + e.message); }
+    catch (e) { toast("" + e.message); }
 };
 document.getElementById("btn-bpm").onclick = async () => {
     try { await post("/api/bpm/calcular", {}); vigilar("/api/bpm/estado", "Calculando BPM"); }
-    catch (e) { toast("⚠ " + e.message); }
+    catch (e) { toast("" + e.message); }
 };
 function vigilar(urlEstado, etiqueta) {
     const cont = document.getElementById("progreso");
@@ -711,7 +713,7 @@ function dibujarWaveform() {
         // sin waveform disponible (formato no decodificable en el navegador): barra plana
         waveCtx.fillStyle = "rgba(255,255,255,.14)";
         waveCtx.fillRect(0, h / 2 - 2, w, 4);
-        waveCtx.fillStyle = "#ff5a2c";
+        waveCtx.fillStyle = "#f6fc57";
         waveCtx.fillRect(0, h / 2 - 2, w * progreso, 4);
         return;
     }
@@ -721,7 +723,7 @@ function dibujarWaveform() {
         const amp = Math.max(0.05, waveformPeaks[i]);
         const barH = amp * h;
         const reproducido = (i / n) <= progreso;
-        waveCtx.fillStyle = reproducido ? "#ff5a2c" : "rgba(255,255,255,.22)";
+        waveCtx.fillStyle = reproducido ? "#f6fc57" : "rgba(255,255,255,.22)";
         waveCtx.fillRect(i * barW, (h - barH) / 2, Math.max(1, barW - 1), barH);
     }
 }
@@ -794,9 +796,9 @@ async function manejarErrorAudio(track) {
     } catch (_) { existe = false; }
     const fmt = (track.formato || "audio").toUpperCase();
     if (!existe) {
-        toast("⚠ El archivo ya no está en su ruta (¿lo moviste o renombraste?). Pulsa «↻ Escanear» para actualizar la biblioteca.", 8000);
+        toast("El archivo ya no está en su ruta (¿lo moviste o renombraste?). Pulsa «Escanear» para actualizar la biblioteca.", 8000);
     } else {
-        toast(`⚠ Tu navegador no pudo decodificar este ${fmt}. Chrome y Edge reproducen la mayoría de formatos (incluido M4A/AAC); Firefox u otros pueden no hacerlo. El archivo sigue intacto.`, 8000);
+        toast(`Tu navegador no pudo decodificar este ${fmt}. Chrome y Edge reproducen la mayoría de formatos (incluido M4A/AAC); Firefox u otros pueden no hacerlo. El archivo sigue intacto.`, 8000);
     }
 }
 
@@ -868,7 +870,7 @@ document.getElementById("btn-ajustes").onclick = async () => {
         "openai/gpt-4o-mini", "anthropic/claude-3.5-sonnet",
         "google/gemini-flash-1.5", "meta-llama/llama-3.1-70b-instruct",
     ];
-    abrirModal("⚙ Ajustes de IA (OpenRouter)", `
+    abrirModal("Ajustes de IA (OpenRouter)", `
         <p class="ayuda">La IA es opcional. Solo se envía texto (artista, título, género…), nunca tu música. Consigue una clave gratis en openrouter.ai. Todo se guarda solo en tu ordenador.</p>
         <div class="campo">
             <label>Clave de OpenRouter</label>
@@ -901,8 +903,8 @@ document.getElementById("btn-ajustes").onclick = async () => {
         const rest = ocupar(e.target, "Probando…");
         try {
             await post("/api/ia/probar", {});
-            msg.className = "msg ok"; msg.textContent = "✅ Conexión correcta.";
-        } catch (err) { msg.className = "msg error"; msg.textContent = "⚠ " + err.message; }
+            msg.className = "msg ok"; msg.textContent = "Conexión correcta.";
+        } catch (err) { msg.className = "msg error"; msg.textContent = "" + err.message; }
         finally { rest(); }
     };
 };
@@ -913,11 +915,11 @@ document.getElementById("btn-ajustes").onclick = async () => {
 document.getElementById("btn-ia-nombres").onclick = async (e) => {
     const ids = [...seleccion];
     if (!ids.length) { toast("Selecciona canciones primero."); return; }
-    const rest = ocupar(e.target, "🤖 Pensando…");
+    const rest = ocupar(e.target, "Pensando…");
     try {
         const r = await post("/api/ia/arreglar-nombres", { ids });
         revisarNombres(r.propuestas);
-    } catch (err) { toast("⚠ " + err.message); }
+    } catch (err) { toast("" + err.message); }
     finally { rest(); }
 };
 function revisarNombres(props) {
@@ -930,7 +932,7 @@ function revisarNombres(props) {
             <td><div class="antes">${esc(p.artista_actual)} — ${esc(p.titulo_actual)}</div>
                 <div class="despues">${esc(p.artista)} — ${esc(p.titulo)}</div></td>
         </tr>`).join("");
-    abrirModal(`🤖 Revisar nombres (${cambios.length})`,
+    abrirModal(`Revisar nombres (${cambios.length})`,
         `<p class="ayuda">Marca los cambios que quieras aplicar. Se escribirán en las etiquetas de los archivos.</p>
          <table class="tabla-prop"><tbody>${filas}</tbody></table>`,
         `<button id="btn-aplicar-props" class="btn primario">Aplicar seleccionados</button>`);
@@ -942,7 +944,7 @@ function revisarNombres(props) {
                 if (p.artista !== p.artista_actual) await post(`/api/track/${p.id}/campo`, { campo: "artista", valor: p.artista });
                 if (p.titulo !== p.titulo_actual) await post(`/api/track/${p.id}/campo`, { campo: "titulo", valor: p.titulo });
                 const t = PORID.get(p.id); if (t) { t.artista = p.artista; t.titulo = p.titulo; }
-            } catch (err) { toast("⚠ " + err.message); }
+            } catch (err) { toast("" + err.message); }
         }
         rest(); cerrarModal(); renderNavegador();
         toast(`Aplicados ${marcados.length} cambios de nombre.`);
@@ -952,11 +954,11 @@ function revisarNombres(props) {
 document.getElementById("btn-ia-genero").onclick = async (e) => {
     const ids = [...seleccion];
     if (!ids.length) { toast("Selecciona canciones primero."); return; }
-    const rest = ocupar(e.target, "🤖 Pensando…");
+    const rest = ocupar(e.target, "Pensando…");
     try {
         const r = await post("/api/ia/sugerir-genero", { ids });
         revisarGeneros(r.propuestas);
-    } catch (err) { toast("⚠ " + err.message); }
+    } catch (err) { toast("" + err.message); }
     finally { rest(); }
 };
 function revisarGeneros(props) {
@@ -970,7 +972,7 @@ function revisarGeneros(props) {
             <td><span class="antes">${esc(p.genero_actual) || "(vacío)"}</span> → <span class="despues">${esc(p.genero)}</span></td>
         </tr>`;
     }).join("");
-    abrirModal(`🤖 Revisar géneros (${cambios.length})`,
+    abrirModal(`Revisar géneros (${cambios.length})`,
         `<p class="ayuda">Marca los que quieras aplicar. Se escribirán en las etiquetas de los archivos.</p>
          <table class="tabla-prop"><tbody>${filas}</tbody></table>`,
         `<button id="btn-aplicar-props" class="btn primario">Aplicar seleccionados</button>`);
@@ -981,7 +983,7 @@ function revisarGeneros(props) {
             try {
                 await post(`/api/track/${p.id}/genero`, { genero: p.genero });
                 const t = PORID.get(p.id); if (t) t.genero = p.genero;
-            } catch (err) { toast("⚠ " + err.message); }
+            } catch (err) { toast("" + err.message); }
         }
         GENEROS = await api("/api/generos");
         rest(); cerrarModal(); renderSidebar(); renderNavegador();
@@ -994,11 +996,11 @@ function revisarGeneros(props) {
 // =====================================================================
 async function recomendarDesde(ids, boton) {
     if (!ids || !ids.length) { toast("No hay temas de partida para recomendar."); return; }
-    const rest = boton ? ocupar(boton, "🤖 Pensando…") : null;
+    const rest = boton ? ocupar(boton, "Pensando…") : null;
     try {
         const r = await post("/api/ia/recomendar", { ids });
         mostrarRecomendaciones(r.tracks);
-    } catch (err) { toast("⚠ " + err.message); }
+    } catch (err) { toast("" + err.message); }
     finally { if (rest) rest(); }
 }
 document.getElementById("btn-ia-recomendar").onclick = (e) => {
@@ -1017,7 +1019,7 @@ function mostrarRecomendaciones(tracks) {
                 <div class="motivo">${esc(t.motivo)}</div></td>
             <td><button class="btn-icono btn-rec-add" title="Añadir al set">＋</button></td>
         </tr>`).join("");
-    abrirModal("🤖 Recomendaciones para tu set",
+    abrirModal("Recomendaciones para tu set",
         `<table class="tabla-prop tabla-rec"><tbody>${filas}</tbody></table>`,
         `<button id="btn-rec-todas" class="btn primario">Añadir todas al set</button>`);
     const porId = new Map(tracks.map(t => [t.id, t]));
@@ -1039,7 +1041,7 @@ function mostrarRecomendaciones(tracks) {
 document.getElementById("btn-armar-set").onclick = async (e) => {
     const descripcion = document.getElementById("desc-set").value.trim();
     if (!descripcion) { toast("Describe el set que quieres (género, ambiente, BPM…)."); return; }
-    const rest = ocupar(e.target, "🤖…");
+    const rest = ocupar(e.target, "…");
     try {
         const r = await post("/api/ia/armar-set", { descripcion });
         if (!r.tracks.length) { toast("La IA no encontró temas para esa descripción."); return; }
@@ -1047,7 +1049,7 @@ document.getElementById("btn-armar-set").onclick = async (e) => {
         prep = r.tracks.slice();
         renderPrep();
         toast(`Set armado con ${r.tracks.length} temas. Revísalo, reordena y guarda.`, 6000);
-    } catch (err) { toast("⚠ " + err.message); }
+    } catch (err) { toast("" + err.message); }
     finally { rest(); }
 };
 
@@ -1123,7 +1125,7 @@ async function enviarChat() {
         burbuja("assistant", visible || "(sin texto)", ids);
     } catch (e) {
         pensando.remove();
-        burbuja("assistant", "⚠ " + e.message);
+        burbuja("assistant", "" + e.message);
     }
 }
 document.getElementById("chat-enviar").onclick = enviarChat;
@@ -1159,19 +1161,19 @@ document.getElementById("cuerpo-tracks").addEventListener("contextmenu", e => {
     const t = PORID.get(menuCtxId);
     if (!t) return;
     const items = [
-        { ico: "▶", txt: "Reproducir", acc: "play" },
-        { ico: "＋", txt: "Añadir al set", acc: "add" },
+        { txt: "Reproducir", acc: "play" },
+        { txt: "Añadir al set", acc: "add" },
         { sep: true },
-        { ico: "🤖", txt: "Recomendar a partir de esta", acc: "recomendar" },
-        { ico: "🔎", txt: `Ver todo de «${t.artista || "este artista"}»`, acc: "artista" },
+        { txt: "Recomendar a partir de esta", acc: "recomendar" },
+        { txt: `Ver todo de «${t.artista || "este artista"}»`, acc: "artista" },
         { sep: true },
-        { ico: "✎", txt: "Editar género", acc: "genero" },
-        { ico: "📂", txt: "Abrir ubicación del archivo", acc: "abrir" },
-        { ico: "📋", txt: "Copiar ruta del archivo", acc: "copiar" },
+        { txt: "Editar género", acc: "genero" },
+        { txt: "Abrir ubicación del archivo", acc: "abrir" },
+        { txt: "Copiar ruta del archivo", acc: "copiar" },
     ];
     menuCtx.innerHTML = items.map(it => it.sep
         ? `<div class="menu-ctx-sep"></div>`
-        : `<button class="menu-ctx-item" data-acc="${it.acc}"><span class="mc-ico">${it.ico}</span>${esc(it.txt)}</button>`
+        : `<button class="menu-ctx-item" data-acc="${it.acc}">${esc(it.txt)}</button>`
     ).join("");
     mostrarMenuCtx(e.clientX, e.clientY);
 });
@@ -1193,7 +1195,7 @@ menuCtx.addEventListener("click", async e => {
     }
     else if (acc === "abrir") {
         try { await post(`/api/track/${id}/abrir-carpeta`, {}); }
-        catch (err) { toast("⚠ " + err.message); }
+        catch (err) { toast("" + err.message); }
     }
     else if (acc === "copiar") {
         try { await navigator.clipboard.writeText(t.ruta || ""); toast("Ruta copiada al portapapeles.", 1800); }
@@ -1259,7 +1261,7 @@ const EXT_AUDIO = [".mp3", ".flac", ".wav", ".aiff", ".aif", ".m4a", ".ogg"];
 
 async function importarSoltados(dataTransfer) {
     if (!RAIZ) {
-        toast("⚠ Primero elige tu carpeta de música (📁 arriba) para poder importar en ella.", 6000);
+        toast("Primero elige tu carpeta de música ( arriba) para poder importar en ella.", 6000);
         return;
     }
     let items;
@@ -1274,10 +1276,10 @@ async function importarSoltados(dataTransfer) {
     try {
         const r = await api("/api/importar", { method: "POST", body: fd });
         const nota = r.ignorados ? ` (${r.ignorados} ignorados)` : "";
-        toast(`✅ Importados ${r.guardados} archivo(s)${nota}. Escaneando para añadirlos…`, 4000);
+        toast(`Importados ${r.guardados} archivo(s)${nota}. Escaneando para añadirlos…`, 4000);
         await post("/api/escanear", {});
         vigilar("/api/escaneo/estado", "Escaneando");
-    } catch (e) { toast("⚠ " + e.message, 6000); }
+    } catch (e) { toast("" + e.message, 6000); }
 }
 
 window.addEventListener("dragenter", e => {
@@ -1323,7 +1325,7 @@ async function comprobarActualizacion() {
         const url = r.url_descarga || r.url_release;
         if (!url) { toast("No encuentro el archivo de descarga para tu sistema."); return; }
         try { await post("/api/abrir-url", { url }); toast("Abriendo la descarga en tu navegador. Descomprime y reemplaza la carpeta del programa.", 8000); }
-        catch (e) { toast("⚠ " + e.message); }
+        catch (e) { toast("" + e.message); }
     };
     document.getElementById("banner-update-notas").onclick = async () => {
         if (r.url_release) { try { await post("/api/abrir-url", { url: r.url_release }); } catch (_) {} }
